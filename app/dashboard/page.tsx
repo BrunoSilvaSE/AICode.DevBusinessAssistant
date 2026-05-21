@@ -93,8 +93,8 @@ export default function DashboardPage() {
             <DashCard
               title="Skill Tree"
               description="Visualize suas skills inferidas do código real."
-              href="/skills"
-              soon={true}
+              href="/perfil"
+              soon={false}
             />
           </div>
 
