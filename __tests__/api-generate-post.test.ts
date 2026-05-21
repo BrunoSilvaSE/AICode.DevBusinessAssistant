@@ -7,7 +7,7 @@ vi.mock("@ai-sdk/groq", () => ({
 
 vi.mock("ai", () => ({
   streamText: vi.fn().mockResolvedValue({
-    toDataStreamResponse: vi.fn().mockReturnValue(
+    toTextStreamResponse: vi.fn().mockReturnValue(
       new Response("streamed post content", { status: 200 })
     ),
   }),

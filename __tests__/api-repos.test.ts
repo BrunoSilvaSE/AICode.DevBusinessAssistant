@@ -29,7 +29,7 @@ describe("GET /api/repos", () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       new Response(
         JSON.stringify([
-          { id: 1, name: "my-project", description: "cool project", language: "TypeScript", stargazers_count: 5, updated_at: "2026-05-01" },
+          { id: 1, name: "my-project", description: "cool project", language: "TypeScript", stargazers_count: 5, updated_at: "2026-05-01", html_url: "https://github.com/BrunoSilvaSE/my-project", owner: { login: "BrunoSilvaSE" } },
         ]),
         { status: 200 }
       )
