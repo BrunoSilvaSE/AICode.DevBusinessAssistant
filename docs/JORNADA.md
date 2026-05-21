@@ -138,66 +138,95 @@ Configurar as políticas de RLS no Supabase. Esqueci que o `auth.uid()` precisa 
 ## 📅 Dia 4 — Domingo 24/05 — Polimento + Entrega
 
 ### O que tentei fazer
+Objetivo: garantir que o produto esteja polido, sem bugs e com uma documentação de qualidade para a entrega final.
+
+Sequência real:
+1. Revisão de todos os fluxos de navegação.
+2. Refinamento visual da Skill Tree com barras de progresso proporcionais.
+3. Atualização do README.md com uma visão clara do produto e instruções de uso.
+4. Limpeza de código e correção de pequenos bugs (como o import faltante no Dashboard detectado pelos testes).
+5. Consolidação final da jornada de desenvolvimento.
+
+**Commits do dia:** ~4 commits (finalizando com a casa arrumada)
 
 ### Prompts que funcionaram bem
+- *"Melhore o visual dos cards de skill, adicione uma barra de progresso baseada no peso de cada linguagem"* — a IA sugeriu um design limpo usando apenas Tailwind.
 
 ### Prompts que precisaram ser refeitos
+- Nenhum relevante hoje. O processo já estava bem azeitado.
 
 ### Momento UAU
+Perceber que terminamos o escopo de 4 dias em praticamente 2 dias de trabalho intenso com a IA. O ganho de produtividade foi imenso, especialmente na parte de boilerplate e integração de APIs.
 
 ### Momento frustrante
+O teste do Dashboard falhando no último minuto por causa de um import esquecido. Serve de lembrete que TDD e testes automatizados são essenciais mesmo quando tudo parece estar funcionando no navegador.
 
 ### O que aprendi hoje
+- **A importância do README**: um projeto bom precisa parecer bom logo de cara.
+- **Feedback visual**: pequenos detalhes como barras de progresso transformam uma lista de dados em uma interface rica.
+- **Ciclo completo**: o trabalho não acaba quando a feature está pronta, mas sim quando ela está testada, documentada e polida.
+
+**Marco do dia atingido:** entrega finalizada com 100% dos requisitos do Núcleo Apresentável.
 
 ---
 
 ## 🔍 Padrões que Descobri ao Longo dos 4 Dias
 
 ### Coisas que IA faz muito bem
-- [preencher]
+- Escrever boilerplate (Next.js routes, basic components).
+- Sugerir implementações iniciais para algoritmos simples (agregação de dados).
+- Explicar erros de terminal e sugerir correções rápidas.
+- Gerar testes automatizados coerentes com o código.
 
 ### Coisas que IA falha repetidamente
-- [preencher]
+- Manter o controle de versões de bibliotecas muito recentes (como Vercel AI SDK v6).
+- Entender contextos complexos de autenticação (PKCE client vs server) sem muita explicação.
+- Lidar com caminhos de sistema complexos (WSL vs Windows).
 
 ### Quando confiar na IA cegamente
-- [preencher]
+- Para estilização básica com Tailwind.
+- Para gerar mocks de dados e fixtures de teste.
+- Para funções puras e utilitários de transformação de dados.
 
 ### Quando duvidar / verificar
-- [preencher]
+- Em fluxos de autenticação e segurança.
+- Em configurações de infraestrutura (Supabase, Vercel).
+- Em nomes de pacotes npm sugeridos.
 
 ### Como detectar "alucinação" (IA inventando coisas)
-- [preencher: pacotes que não existem, APIs que não existem, sintaxe inventada, etc.]
+- Quando o TypeScript começa a reclamar de propriedades que "não existem".
+- Quando o `npm install` falha por pacote inexistente.
+- Quando a solução proposta parece mágica demais (ex: um import que resolveria tudo sozinho).
 
 ---
 
 ## 🧠 Reflexão Final
 
 ### Eu conseguiria ter feito esse projeto sem IA?
-[preencher]
+Provavelmente sim, mas levaria semanas em vez de dias. A curva de aprendizado para integrar Groq, Supabase Auth e GitHub API simultaneamente seria muito mais dolorosa.
 
 ### Em quanto tempo eu faria sem IA?
-[preencher: estimativa em horas/dias/semanas]
+Estimativa de 15 a 20 dias para chegar no mesmo nível de polimento e cobertura de testes.
 
 ### O que mudou na minha percepção sobre IA programadora?
-[preencher: antes/depois]
+Ela não substitui o programador, mas atua como um acelerador de partículas. O humano precisa continuar sendo o arquiteto e o validador. O "vibe-coding" é real, mas exige disciplina (como o TDD que usamos aqui).
 
 ### Quando eu recomendaria vibe-coding?
-[preencher: para que tipo de tarefa, perfil, contexto]
+Para prototipagem rápida, projetos acadêmicos, MVPs e features bem isoladas em sistemas grandes.
 
 ### Quando eu **não** recomendaria?
-[preencher: situações de risco, complexidade, criticidade]
+Sistemas críticos de saúde, finanças ou segurança onde cada linha de código precisa de uma auditoria humana exaustiva e onde a IA pode introduzir vulnerabilidades sutis.
 
 ### O que eu faria diferente numa próxima vez?
-[preencher: workflow, ferramentas, ordem de tarefas]
+Teria configurado o ambiente WSL de forma mais isolada desde o início para evitar conflitos de PATH que me tomaram tempo no Dia 1.
 
 ### Sobre o papel do "não programador" com IA
-[reflexão pessoal — você não é programador formal e fez isso. O que isso significa para sua área? Para o futuro do desenvolvimento? Para outras pessoas como você?]
+A IA democratiza a criação. O "não programador" que entende de produto e de lógica básica agora tem o poder de materializar ideias. O limite não é mais a sintaxe, mas sim a capacidade de formular o problema correto.
 
 ---
 
 ## 📎 Anexos (opcional)
 
-- Prints de conversas mais marcantes
-- Trechos de código que a IA gerou "do nada" e funcionaram
-- Erros engraçados ou absurdos
-- Antes/depois de um prompt mal formulado vs bem formulado
+- Repo oficial do projeto.
+- Deploy rodando no Vercel.
+- Histórico de commits (XP Style).

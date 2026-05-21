@@ -120,11 +120,19 @@ export default function PerfilPage() {
           <h2 className="text-xl font-semibold tracking-tight">Skill Tree (GitHub Verified)</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {skills.map((skill) => (
-              <div key={skill.name} className="rounded-lg border bg-card p-4 space-y-1">
-                <p className="text-sm font-medium">{skill.name}</p>
-                <div className="flex items-center justify-between">
+              <div key={skill.name} className="rounded-lg border bg-card p-4 space-y-3">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">{skill.name}</p>
                   <p className="text-xs text-muted-foreground">{skill.count} repos</p>
-                  <Badge variant="secondary" className="text-[10px] uppercase">Verified</Badge>
+                </div>
+                <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary"
+                    style={{ width: `${Math.min(100, (skill.count / skills[0].count) * 100)}%` }}
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <Badge variant="secondary" className="text-[9px] h-4 uppercase tracking-tighter">Verified</Badge>
                 </div>
               </div>
             ))}
