@@ -63,16 +63,38 @@ O `npx shadcn@latest add button` falhava com `EPERM: operation not permitted, sc
 ## 📅 Dia 2 — Sexta 22/05 — Tradutor de Contexto
 
 ### O que tentei fazer
+Objetivo: implementar o núcleo de geração de posts usando IA (Groq/Llama 3) e integração com a API do GitHub.
+
+Sequência real:
+1. Configuração do Groq e Vercel AI SDK.
+2. Endpoint `/api/generate-post` com suporte a streaming e dois tons: Negócio (Business) e Técnico (Technical).
+3. Página `/gerador` para geração de posts a partir de texto livre.
+4. Endpoint `/api/repos` para listar repositórios públicos do usuário via token do GitHub.
+5. Endpoint `/api/repo-detail` para extrair metadados, README e linguagens de um repositório específico.
+6. Página de detalhes do repositório com botão para gerar posts contextualizados.
+
+**Commits do dia:** ~6 commits (fomos rápidos e matamos o escopo de amanhã hoje!)
 
 ### Prompts que funcionaram bem
+- *"Ajuste o prompt do sistema para que o tom 'business' foque em métricas e o 'technical' em arquitetura"* — a IA refinou os prompts de sistema que resultaram em posts bem distintos e úteis.
+- *"Como extrair o provider_token da sessão do Supabase?"* — a resposta foi direta e permitiu autenticar na API do GitHub sem precisar de um banco de dados intermediário para tokens.
 
 ### Prompts que precisaram ser refeitos
+- Tentei usar `openai` provider com a Groq key — erro óbvio. Precisei trocar para `@ai-sdk/groq` especificamente.
+- A IA sugeriu `max_tokens` mas na versão v6 do AI SDK é `maxOutputTokens`. Precisei corrigir manualmente após o erro de tipagem.
 
 ### Momento UAU
+A velocidade do Groq (Llama 3.3 70B) é absurda. O post começa a aparecer quase instantaneamente após o clique. A experiência de "vibe coding" flui muito melhor quando o feedback da IA é rápido assim.
 
 ### Momento frustrante
+Lidar com o README em base64 vindo da API do GitHub. Esqueci que vinha encodado e a IA inicialmente tentou ler como string direta, resultando em caracteres ilegíveis. Corrigido com `Buffer.from(data.content, 'base64').toString('utf-8')`.
 
 ### O que aprendi hoje
+- **Streaming de texto** no Next.js 16 com AI SDK é extremamente simples se você seguir o padrão de Route Handlers.
+- **GitHub API** exige o header `Accept: application/vnd.github+json` para algumas rotas de metadados, senão o retorno é inconsistente.
+- **Contexto é tudo**: passar o README (mesmo que um trecho) para a LLM faz o post gerado ser infinitamente mais rico do que apenas usar o nome e descrição do repositório.
+
+**Marco do dia atingido:** o núcleo de valor do produto (geração de posts a partir do código real) está pronto.
 
 ---
 
