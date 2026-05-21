@@ -52,6 +52,9 @@ export default function DashboardPage() {
                 className="h-8 w-8 rounded-full"
               />
             )}
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/perfil">Ver Perfil</Link>
+            </Button>
             <Button
               variant="outline"
               size="sm"

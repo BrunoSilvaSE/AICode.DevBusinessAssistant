@@ -101,16 +101,37 @@ Lidar com o README em base64 vindo da API do GitHub. Esqueci que vinha encodado 
 ## 📅 Dia 3 — Sábado 23/05 — Portfólio + Skill Tree
 
 ### O que tentei fazer
+Objetivo: transformar a ferramenta em uma plataforma de portfólio, permitindo salvar o histórico e visualizar as habilidades do desenvolvedor.
+
+Sequência real:
+1. Criação da tabela `posts` no Supabase com RLS (Row Level Security).
+2. Implementação do endpoint `api/posts` para salvar e recuperar posts.
+3. Atualização do Gerador (standalone e por repo) para salvar automaticamente o post após a geração usando o callback `onFinish`.
+4. Desenvolvimento de uma função utilitária `calculateSkills` seguindo TDD (Vitest) para agregar linguagens dos repositórios.
+5. Criação da página `/perfil` que consolida a "Skill Tree" verificada e o histórico de posts gerados.
+6. Habilitação do acesso ao perfil a partir do Dashboard.
+
+**Commits do dia:** ~6 commits (mantendo o ritmo XP + TDD)
 
 ### Prompts que funcionaram bem
+- *"Crie uma função que receba uma lista de repositórios e retorne um ranking das linguagens mais usadas"* — a IA gerou a lógica e o teste em Vitest rapidamente.
+- *"Como salvar o resultado do useCompletion automaticamente?"* — a sugestão de usar o hook `onFinish` foi perfeita e evitou que o usuário tivesse que clicar em "Salvar" manualmente.
 
 ### Prompts que precisaram ser refeitos
+- Tentei fazer a agregação de skills no banco (via SQL), mas como os dados vêm da API do GitHub em tempo real, foi muito mais simples e performático fazer no frontend (ou numa utils compartilhada). A IA inicialmente insistiu na solução SQL até eu explicar a origem dos dados.
 
 ### Momento UAU
+Ver a "Skill Tree" se montando sozinha a partir dos meus repositórios reais deu uma sensação de "gamificação" muito legal pro projeto. Deixa de ser apenas um gerador de texto e passa a ser uma prova social do que eu realmente sei codar.
 
 ### Momento frustrante
+Configurar as políticas de RLS no Supabase. Esqueci que o `auth.uid()` precisa de um setup correto no cliente para ser reconhecido. Perdi uns 15 minutos debugando por que os posts não estavam salvando até perceber que era permissão de banco.
 
 ### O que aprendi hoje
+- **TDD em pequenas funções** (como o `calculateSkills`) economiza um tempo absurdo de "save and refresh" no navegador.
+- **RLS (Row Level Security)** é poderoso mas silencioso — se você erra a política, o código simplesmente não faz nada (ou retorna vazio) sem dar erro explícito no console às vezes.
+- **Callback pattern**: hooks como `onFinish` do AI SDK facilitam muito a orquestração de efeitos colaterais (como salvar no banco) sem poluir a lógica principal de renderização.
+
+**Marco do dia atingido:** o projeto agora tem "memória" e uma identidade visual para o desenvolvedor.
 
 ---
 
