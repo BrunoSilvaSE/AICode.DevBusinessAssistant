@@ -13,16 +13,42 @@ function CallbackHandler() {
     const supabase = createBrowserClient();
 
     if (code) {
+      // PKCE flow: exchange code for session
       supabase.auth
         .exchangeCodeForSession(code)
         .then(({ error }) => router.push(error ? "/login" : "/dashboard"));
-    } else {
-      supabase.auth
-        .getSession()
-        .then(({ data: { session } }) =>
-          router.push(session ? "/dashboard" : "/login")
-        );
+      return;
     }
+
+    // Implicit flow: Supabase processes the hash fragment automatically on init.
+    // onAuthStateChange fires with SIGNED_IN once the token is parsed.
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        subscription.unsubscribe();
+        router.push("/dashboard");
+      }
+    });
+
+    // Fallback: if SIGNED_IN already fired before listener attached, check directly.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        subscription.unsubscribe();
+        router.push("/dashboard");
+      }
+    });
+
+    // Safety timeout: if nothing fires in 5s, send to login.
+    const timeout = setTimeout(() => {
+      subscription.unsubscribe();
+      router.push("/login");
+    }, 5000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, [router, searchParams]);
 
   return (
