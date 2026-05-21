@@ -20,6 +20,7 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "."),
       "next/link": path.resolve(__dirname, "./__mocks__/next-link.tsx"),
+      "next/navigation": path.resolve(__dirname, "./__mocks__/next-navigation.ts"),
     },
   },
 })
