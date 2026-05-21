@@ -17,6 +17,17 @@ export default function GeradorPage() {
   const { completion, complete, isLoading, error } = useCompletion({
     api: "/api/generate-post",
     body: { tone },
+    onFinish: (_prompt, completion) => {
+      fetch("/api/posts", {
+        method: "POST",
+        body: JSON.stringify({
+          tone,
+          content: completion,
+          repo_name: "Standalone",
+        }),
+        headers: { "Content-Type": "application/json" },
+      });
+    },
   });
 
   async function handleGenerate() {

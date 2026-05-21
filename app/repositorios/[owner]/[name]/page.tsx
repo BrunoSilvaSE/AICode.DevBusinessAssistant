@@ -32,6 +32,17 @@ export default function RepoDetailPage() {
   const { completion, complete, isLoading: generating, error } = useCompletion({
     api: "/api/generate-post",
     body: { tone },
+    onFinish: (_prompt, completion) => {
+      fetch("/api/posts", {
+        method: "POST",
+        body: JSON.stringify({
+          repo_name: params.name,
+          tone,
+          content: completion,
+        }),
+        headers: { "Content-Type": "application/json" },
+      });
+    },
   });
 
   useEffect(() => {
