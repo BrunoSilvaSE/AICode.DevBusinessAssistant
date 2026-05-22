@@ -118,6 +118,12 @@ export default function DashboardPage() {
               href="/perfil"
               soon={false}
             />
+            <DashCard
+              title="Linha do Tempo"
+              description="Adicione formação, experiências e certificações ao seu portfólio."
+              href="/timeline"
+              soon={false}
+            />
           </div>
 
           <div className="rounded-lg border bg-card p-6">

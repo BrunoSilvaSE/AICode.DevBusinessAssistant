@@ -20,6 +20,3 @@ CREATE POLICY "profiles_insert_own"
 CREATE POLICY "profiles_update_own"
   ON profiles FOR UPDATE USING (auth.uid() = user_id);
 
--- Allow public read on posts so portfolio pages can show them
-CREATE POLICY "posts_select_public"
-  ON posts FOR SELECT USING (true);
