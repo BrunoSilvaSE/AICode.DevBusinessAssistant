@@ -6,7 +6,8 @@ import { createBrowserClient } from "@/lib/supabase/client";
 import { calculateSkills } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, RefreshCw, Github, Calendar, MessageSquare } from "lucide-react";
+import { ArrowLeft, RefreshCw, Calendar, MessageSquare } from "lucide-react";
+import { GitHubIcon } from "@/components/icons/github";
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 
@@ -104,7 +105,7 @@ export default function PerfilPage() {
                   rel="noopener noreferrer"
                   className="flex items-center gap-1 hover:text-foreground transition-colors"
                 >
-                  <Github className="h-4 w-4" />
+                  <GitHubIcon className="h-4 w-4" />
                   @{username}
                 </a>
               )}
