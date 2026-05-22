@@ -30,25 +30,32 @@ export default function RepoDetailPage() {
   const [tone, setTone] = useState<Tone>("business");
   const [copied, setCopied] = useState(false);
 
-  // Refs hold the latest tokens for use inside callbacks without stale closures.
   const supabaseTokenRef = useRef<string | null>(null);
+  const wasGeneratingRef = useRef(false);
 
   const { completion, complete, isLoading: generating, error } = useCompletion({
     api: "/api/generate-post",
     body: { tone },
-    onFinish: (_prompt, completion) => {
-      const jwt = supabaseTokenRef.current;
-      if (!jwt) return;
-      fetch("/api/posts", {
-        method: "POST",
-        body: JSON.stringify({ repo_name: params.name, tone, content: completion }),
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${jwt}`,
-        },
-      });
-    },
   });
+
+  // Save post when generation finishes (generating flips false→true→false).
+  // Using useEffect avoids stale-closure issues with onFinish parameters.
+  useEffect(() => {
+    if (wasGeneratingRef.current && !generating && completion) {
+      const jwt = supabaseTokenRef.current;
+      if (jwt) {
+        fetch("/api/posts", {
+          method: "POST",
+          body: JSON.stringify({ repo_name: params.name, tone, content: completion }),
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${jwt}`,
+          },
+        });
+      }
+    }
+    wasGeneratingRef.current = generating;
+  }, [generating, completion, tone, params.name]);
 
   useEffect(() => {
     const supabase = createBrowserClient();

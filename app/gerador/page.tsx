@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useCompletion } from "@ai-sdk/react";
+import { createBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
@@ -13,22 +14,38 @@ export default function GeradorPage() {
   const [input, setInput] = useState("");
   const [tone, setTone] = useState<Tone>("business");
   const [copied, setCopied] = useState(false);
+  const supabaseTokenRef = useRef<string | null>(null);
+  const wasLoadingRef = useRef(false);
+
+  useEffect(() => {
+    createBrowserClient().auth.getSession().then(({ data }) => {
+      if (data.session?.access_token) {
+        supabaseTokenRef.current = data.session.access_token;
+      }
+    });
+  }, []);
 
   const { completion, complete, isLoading, error } = useCompletion({
     api: "/api/generate-post",
     body: { tone },
-    onFinish: (_prompt, completion) => {
-      fetch("/api/posts", {
-        method: "POST",
-        body: JSON.stringify({
-          tone,
-          content: completion,
-          repo_name: "Standalone",
-        }),
-        headers: { "Content-Type": "application/json" },
-      });
-    },
   });
+
+  useEffect(() => {
+    if (wasLoadingRef.current && !isLoading && completion) {
+      const jwt = supabaseTokenRef.current;
+      if (jwt) {
+        fetch("/api/posts", {
+          method: "POST",
+          body: JSON.stringify({ tone, content: completion, repo_name: "Standalone" }),
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${jwt}`,
+          },
+        });
+      }
+    }
+    wasLoadingRef.current = isLoading;
+  }, [isLoading, completion, tone]);
 
   async function handleGenerate() {
     if (!input.trim() || input.trim().length < 10) return;
