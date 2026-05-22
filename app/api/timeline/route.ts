@@ -35,7 +35,7 @@ export async function POST(req: Request) {
   if (!user) return Response.json({ error: "Não autenticado" }, { status: 401 });
 
   const body = await req.json().catch(() => ({}));
-  const { type, title, institution, description, start_date, end_date, current } = body as {
+  const { type, title, institution, description, start_date, end_date, current, repo_url, repo_name } = body as {
     type?: string;
     title?: string;
     institution?: string;
@@ -43,6 +43,8 @@ export async function POST(req: Request) {
     start_date?: string;
     end_date?: string;
     current?: boolean;
+    repo_url?: string;
+    repo_name?: string;
   };
 
   if (!type || !VALID_TYPES.includes(type as TimelineType) || !title || !start_date) {
@@ -61,6 +63,8 @@ export async function POST(req: Request) {
     start_date,
     end_date: end_date ?? null,
     current: current ?? false,
+    repo_url: repo_url ?? null,
+    repo_name: repo_name ?? null,
   });
 
   if (error) return Response.json({ error: error.message }, { status: 500 });

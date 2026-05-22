@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 
 type TimelineItem = {
   id: string;
@@ -12,6 +12,8 @@ type TimelineItem = {
   start_date: string;
   end_date: string | null;
   current: boolean;
+  repo_url: string | null;
+  repo_name: string | null;
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -185,6 +187,19 @@ export default async function FullTimelinePage({
                           <p className="text-xs">Duração: {dur}</p>
                         )}
                       </div>
+
+                      {/* Repo link */}
+                      {item.repo_url && (
+                        <a
+                          href={item.repo_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          {item.repo_name ?? item.repo_url}
+                        </a>
+                      )}
 
                       {/* Description */}
                       {item.description && (

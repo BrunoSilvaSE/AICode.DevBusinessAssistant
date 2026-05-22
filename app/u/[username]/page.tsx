@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MessageSquare, ChevronRight } from "lucide-react";
+import { Calendar, MessageSquare, ChevronRight, Star, ExternalLink } from "lucide-react";
 import { GitHubIcon } from "@/components/icons/github";
 
 type Skill = { name: string; count: number };
@@ -13,6 +13,14 @@ type Post = {
   content: string;
   created_at: string;
 };
+type FeaturedRepo = {
+  name: string;
+  full_name: string;
+  description: string | null;
+  html_url: string;
+  language: string | null;
+  stargazers_count: number;
+};
 type Profile = {
   user_id: string;
   username: string;
@@ -20,6 +28,7 @@ type Profile = {
   avatar_url: string | null;
   bio: string | null;
   skills: Skill[];
+  featured_repos: FeaturedRepo[];
 };
 type TimelineItem = {
   id: string;
@@ -135,6 +144,41 @@ export default async function PublicProfilePage({
             )}
           </div>
         </section>
+
+        {/* Featured Repos */}
+        {profile.featured_repos?.length > 0 && (
+          <section className="space-y-4">
+            <h2 className="font-semibold text-lg">Projetos em Destaque</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {profile.featured_repos.map((repo) => (
+                <a
+                  key={repo.full_name}
+                  href={repo.html_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group rounded-lg border bg-card p-4 space-y-2 hover:border-foreground/30 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-medium text-sm group-hover:underline">{repo.name}</span>
+                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                  </div>
+                  {repo.description && (
+                    <p className="text-xs text-muted-foreground line-clamp-2">{repo.description}</p>
+                  )}
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    {repo.language && <span>{repo.language}</span>}
+                    {repo.stargazers_count > 0 && (
+                      <span className="flex items-center gap-0.5">
+                        <Star className="h-3 w-3" />
+                        {repo.stargazers_count}
+                      </span>
+                    )}
+                  </div>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Skill Tree */}
         {profile.skills.length > 0 && (

@@ -124,6 +124,12 @@ export default function DashboardPage() {
               href="/timeline"
               soon={false}
             />
+            <DashCard
+              title="Repos em Destaque"
+              description="Escolha até 3 repositórios para exibir no seu portfólio público."
+              href="/repos-destaque"
+              soon={false}
+            />
           </div>
 
           <div className="rounded-lg border bg-card p-6">

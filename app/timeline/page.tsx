@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, Trash2, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Loader2, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -23,6 +23,8 @@ const TYPE_COLORS: Record<string, string> = {
   project: "bg-pink-500",
 };
 
+type Repo = { name: string; full_name: string; html_url: string };
+
 type TimelineItem = {
   id: string;
   type: string;
@@ -32,6 +34,8 @@ type TimelineItem = {
   start_date: string;
   end_date: string | null;
   current: boolean;
+  repo_url: string | null;
+  repo_name: string | null;
 };
 
 type FormState = {
@@ -42,6 +46,7 @@ type FormState = {
   start_date: string;
   end_date: string;
   current: boolean;
+  repo_full_name: string;
 };
 
 const emptyForm: FormState = {
@@ -52,12 +57,14 @@ const emptyForm: FormState = {
   start_date: "",
   end_date: "",
   current: false,
+  repo_full_name: "",
 };
 
 export default function TimelinePage() {
   const router = useRouter();
   const [jwt, setJwt] = useState<string | null>(null);
   const [items, setItems] = useState<TimelineItem[]>([]);
+  const [repos, setRepos] = useState<Repo[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -66,42 +73,53 @@ export default function TimelinePage() {
   useEffect(() => {
     createBrowserClient()
       .auth.getSession()
-      .then(({ data }) => {
-        if (!data.session?.access_token) {
-          router.push("/login");
-          return;
+      .then(async ({ data }) => {
+        const session = data.session;
+        if (!session?.access_token) { router.push("/login"); return; }
+        setJwt(session.access_token);
+
+        const [itemsRes, reposRes] = await Promise.all([
+          fetch("/api/timeline", { headers: { Authorization: `Bearer ${session.access_token}` } }),
+          session.provider_token
+            ? fetch("/api/repos", { headers: { "X-GitHub-Token": session.provider_token } })
+            : Promise.resolve(null),
+        ]);
+
+        if (itemsRes.ok) setItems(await itemsRes.json());
+        if (reposRes?.ok) {
+          const all = await reposRes.json();
+          setRepos(Array.isArray(all) ? all : []);
         }
-        setJwt(data.session.access_token);
-        fetchItems(data.session.access_token);
+        setLoading(false);
       });
   }, [router]);
-
-  async function fetchItems(token: string) {
-    setLoading(true);
-    const res = await fetch("/api/timeline", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (res.ok) setItems(await res.json());
-    setLoading(false);
-  }
 
   async function handleAdd() {
     if (!jwt || !form.title || !form.start_date) return;
     setSaving(true);
+
+    const selectedRepo = repos.find((r) => r.full_name === form.repo_full_name);
     const res = await fetch("/api/timeline", {
       method: "POST",
       headers: { Authorization: `Bearer ${jwt}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        ...form,
-        end_date: form.current ? null : form.end_date || null,
+        type: form.type,
+        title: form.title,
         institution: form.institution || null,
         description: form.description || null,
+        start_date: form.start_date,
+        end_date: form.current ? null : form.end_date || null,
+        current: form.current,
+        repo_url: selectedRepo?.html_url ?? null,
+        repo_name: selectedRepo?.name ?? null,
       }),
     });
+
     if (res.ok) {
+      const updated = await fetch("/api/timeline", { headers: { Authorization: `Bearer ${jwt}` } });
+      if (updated.ok) setItems(await updated.json());
       setForm(emptyForm);
       setShowForm(false);
-      await fetchItems(jwt);
     }
     setSaving(false);
   }
@@ -220,6 +238,22 @@ export default function TimelinePage() {
                   className="w-full rounded-md border bg-background px-3 py-2 text-sm resize-none"
                 />
               </div>
+
+              {repos.length > 0 && (
+                <div className="space-y-1.5 col-span-2">
+                  <label className="text-xs font-medium">Repositório vinculado (opcional)</label>
+                  <select
+                    value={form.repo_full_name}
+                    onChange={(e) => setForm((f) => ({ ...f, repo_full_name: e.target.value }))}
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="">— Nenhum —</option>
+                    {repos.map((r) => (
+                      <option key={r.full_name} value={r.full_name}>{r.full_name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2 justify-end">
@@ -268,6 +302,17 @@ export default function TimelinePage() {
                   <p className="text-xs text-muted-foreground">
                     {formatDate(item.start_date)} → {item.current ? "presente" : item.end_date ? formatDate(item.end_date) : "—"}
                   </p>
+                  {item.repo_url && (
+                    <a
+                      href={item.repo_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      {item.repo_name ?? item.repo_url}
+                    </a>
+                  )}
                   {item.description && (
                     <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{item.description}</p>
                   )}
