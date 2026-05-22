@@ -185,7 +185,7 @@ export default function TimelinePage() {
                 <label className="text-xs font-medium">Início *</label>
                 <input
                   type="month"
-                  value={form.start_date}
+                  value={form.start_date.slice(0, 7)}
                   onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value + "-01" }))}
                   className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                 />
