@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { createAuthedServerClient } from "@/lib/supabase/client";
 
 function extractJwt(req: Request): string | null {
@@ -5,8 +6,17 @@ function extractJwt(req: Request): string | null {
   return header?.startsWith("Bearer ") ? header.slice(7) : null;
 }
 
-const VALID_TYPES = ["work", "education", "bootcamp", "certification", "project"] as const;
-type TimelineType = (typeof VALID_TYPES)[number];
+const TimelineSchema = z.object({
+  type: z.enum(["work", "education", "bootcamp", "certification", "project"]),
+  title: z.string().min(1, "Título é obrigatório"),
+  start_date: z.string().min(1, "Data de início é obrigatória"),
+  institution: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  end_date: z.string().nullable().optional(),
+  current: z.boolean().optional().default(false),
+  repo_url: z.string().url().nullable().optional(),
+  repo_name: z.string().nullable().optional(),
+});
 
 export async function GET(req: Request) {
   const jwt = extractJwt(req);
@@ -34,25 +44,13 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Não autenticado" }, { status: 401 });
 
-  const body = await req.json().catch(() => ({}));
-  const { type, title, institution, description, start_date, end_date, current, repo_url, repo_name } = body as {
-    type?: string;
-    title?: string;
-    institution?: string;
-    description?: string;
-    start_date?: string;
-    end_date?: string;
-    current?: boolean;
-    repo_url?: string;
-    repo_name?: string;
-  };
-
-  if (!type || !VALID_TYPES.includes(type as TimelineType) || !title || !start_date) {
-    return Response.json(
-      { error: "Campos obrigatórios: type, title, start_date" },
-      { status: 400 }
-    );
+  const raw = await req.json().catch(() => ({}));
+  const parsed = TimelineSchema.safeParse(raw);
+  if (!parsed.success) {
+    return Response.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
+
+  const { type, title, institution, description, start_date, end_date, current, repo_url, repo_name } = parsed.data;
 
   const { error } = await supabase.from("timeline_items").insert({
     user_id: user.id,

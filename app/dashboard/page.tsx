@@ -7,6 +7,7 @@ import { createBrowserClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { GitHubIcon } from "@/components/icons/github";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -63,17 +64,14 @@ export default function DashboardPage() {
           <span className="font-semibold text-sm tracking-tight">
             Dev Business Assistant
           </span>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {avatarUrl && (
-              <img
-                src={avatarUrl}
-                alt={name}
-                className="h-8 w-8 rounded-full"
-              />
+              <img src={avatarUrl} alt={name} className="h-8 w-8 rounded-full" />
             )}
             <Button asChild variant="ghost" size="sm">
               <Link href="/perfil">Ver Perfil</Link>
             </Button>
+            <ThemeToggle />
             <Button
               variant="outline"
               size="sm"

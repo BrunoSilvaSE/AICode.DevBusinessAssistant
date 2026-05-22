@@ -7,7 +7,7 @@ import { createBrowserClient } from "@/lib/supabase/client";
 import { useCompletion } from "@ai-sdk/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Star, Copy, Check, Loader2, ExternalLink } from "lucide-react";
+import { ArrowLeft, Star, Copy, Check, Loader2, ExternalLink, FileText } from "lucide-react";
 
 type RepoDetail = {
   name: string;
@@ -21,6 +21,7 @@ type RepoDetail = {
 };
 
 type Tone = "business" | "technical";
+type Mode = "post" | "readme";
 
 export default function RepoDetailPage() {
   const router = useRouter();
@@ -28,10 +29,13 @@ export default function RepoDetailPage() {
   const [repo, setRepo] = useState<RepoDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [tone, setTone] = useState<Tone>("business");
-  const [copied, setCopied] = useState(false);
+  const [mode, setMode] = useState<Mode>("post");
+  const [copiedPost, setCopiedPost] = useState(false);
+  const [copiedReadme, setCopiedReadme] = useState(false);
 
   const supabaseTokenRef = useRef<string | null>(null);
   const wasGeneratingRef = useRef(false);
+  const wasReadmeGeneratingRef = useRef(false);
 
   const { completion, complete, isLoading: generating, error } = useCompletion({
     api: "/api/generate-post",
@@ -39,8 +43,17 @@ export default function RepoDetailPage() {
     streamProtocol: "text",
   });
 
-  // Save post when generation finishes (generating flips false→true→false).
-  // Using useEffect avoids stale-closure issues with onFinish parameters.
+  const {
+    completion: readmeCompletion,
+    complete: completeReadme,
+    isLoading: readmeGenerating,
+    error: readmeError,
+  } = useCompletion({
+    api: "/api/generate-readme",
+    streamProtocol: "text",
+  });
+
+  // Save post when generation finishes
   useEffect(() => {
     if (wasGeneratingRef.current && !generating && completion) {
       const jwt = supabaseTokenRef.current;
@@ -48,10 +61,7 @@ export default function RepoDetailPage() {
         fetch("/api/posts", {
           method: "POST",
           body: JSON.stringify({ repo_name: params.name, tone, content: completion }),
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${jwt}`,
-          },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${jwt}` },
         });
       }
     }
@@ -59,14 +69,14 @@ export default function RepoDetailPage() {
   }, [generating, completion, tone, params.name]);
 
   useEffect(() => {
+    wasReadmeGeneratingRef.current = readmeGenerating;
+  }, [readmeGenerating]);
+
+  useEffect(() => {
     const supabase = createBrowserClient();
     supabase.auth.getSession().then(({ data }) => {
       const session = data.session;
-      if (!session?.provider_token) {
-        router.push("/login");
-        return;
-      }
-
+      if (!session?.provider_token) { router.push("/login"); return; }
       supabaseTokenRef.current = session.access_token;
 
       fetch(`/api/repo-detail?owner=${params.owner}&name=${params.name}`, {
@@ -92,24 +102,39 @@ export default function RepoDetailPage() {
     await complete(context);
   }
 
-  async function handleCopy() {
-    await navigator.clipboard.writeText(completion);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  async function handleGenerateReadme() {
+    if (!repo) return;
+    await completeReadme("", {
+      body: {
+        repoName: repo.name,
+        description: repo.description,
+        languages: repo.languages,
+        readme: repo.readme,
+      },
+    });
+  }
+
+  async function handleCopy(text: string, setter: (v: boolean) => void) {
+    await navigator.clipboard.writeText(text);
+    setter(true);
+    setTimeout(() => setter(false), 2000);
   }
 
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground text-sm">Carregando repositório...</p>
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   if (!repo) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center flex-col gap-3">
         <p className="text-muted-foreground text-sm">Repositório não encontrado.</p>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/repositorios">Voltar</Link>
+        </Button>
       </div>
     );
   }
@@ -133,12 +158,8 @@ export default function RepoDetailPage() {
         <div className="space-y-3">
           <div className="flex items-start justify-between gap-4">
             <h1 className="text-2xl font-bold tracking-tight">{repo.name}</h1>
-            <a
-              href={repo.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-foreground shrink-0"
-            >
+            <a href={repo.url} target="_blank" rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-foreground shrink-0">
               <ExternalLink className="h-4 w-4" />
             </a>
           </div>
@@ -157,69 +178,127 @@ export default function RepoDetailPage() {
           </div>
         </div>
 
-        {/* Generate section */}
-        <div className="rounded-lg border bg-card p-6 space-y-5">
-          <h2 className="font-semibold">Gerar Post LinkedIn</h2>
-
-          <div className="flex gap-2">
-            {(["business", "technical"] as Tone[]).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTone(t)}
-                className={`flex-1 rounded-lg border p-3 text-left transition-colors ${
-                  tone === t
-                    ? "border-foreground bg-foreground/5"
-                    : "border-border hover:border-foreground/30"
-                }`}
-              >
-                <p className="text-sm font-medium">
-                  {t === "business" ? "Negócio / LinkedIn" : "Técnico / Comunidade"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {t === "business"
-                    ? "Para recrutadores e gestores"
-                    : "Para devs e pares técnicos"}
-                </p>
-              </button>
-            ))}
-          </div>
-
-          <Button onClick={handleGenerate} disabled={generating} className="w-full" size="lg">
-            {generating ? (
-              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando post...</>
-            ) : (
-              `Gerar Post ${tone === "business" ? "Business" : "Técnico"}`
-            )}
-          </Button>
+        {/* Mode tabs */}
+        <div className="flex gap-2 border-b pb-4">
+          <button
+            onClick={() => setMode("post")}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              mode === "post"
+                ? "bg-foreground text-background"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Gerar Post LinkedIn
+          </button>
+          <button
+            onClick={() => setMode("readme")}
+            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              mode === "readme"
+                ? "bg-foreground text-background"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <FileText className="h-3.5 w-3.5" />
+            Auto-README
+          </button>
         </div>
 
-        {/* Output */}
-        {(completion || generating) && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-medium">Post gerado</h2>
-              {completion && !generating && (
-                <Button variant="outline" size="sm" onClick={handleCopy}>
-                  {copied ? (
-                    <><Check className="h-3.5 w-3.5 mr-1.5" />Copiado!</>
-                  ) : (
-                    <><Copy className="h-3.5 w-3.5 mr-1.5" />Copiar</>
+        {/* Post mode */}
+        {mode === "post" && (
+          <>
+            <div className="rounded-lg border bg-card p-6 space-y-5">
+              <div className="flex gap-2">
+                {(["business", "technical"] as Tone[]).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTone(t)}
+                    className={`flex-1 rounded-lg border p-3 text-left transition-colors ${
+                      tone === t ? "border-foreground bg-foreground/5" : "border-border hover:border-foreground/30"
+                    }`}
+                  >
+                    <p className="text-sm font-medium">
+                      {t === "business" ? "Negócio / LinkedIn" : "Técnico / Comunidade"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {t === "business" ? "Para recrutadores e gestores" : "Para devs e pares técnicos"}
+                    </p>
+                  </button>
+                ))}
+              </div>
+              <Button onClick={handleGenerate} disabled={generating} className="w-full" size="lg">
+                {generating ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando post...</>
+                ) : (
+                  `Gerar Post ${tone === "business" ? "Business" : "Técnico"}`
+                )}
+              </Button>
+            </div>
+
+            {(completion || generating) && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-medium">Post gerado</h2>
+                  {completion && !generating && (
+                    <Button variant="outline" size="sm" onClick={() => handleCopy(completion, setCopiedPost)}>
+                      {copiedPost ? <><Check className="h-3.5 w-3.5 mr-1.5" />Copiado!</> : <><Copy className="h-3.5 w-3.5 mr-1.5" />Copiar</>}
+                    </Button>
                   )}
-                </Button>
-              )}
-            </div>
-            <div className="rounded-lg border bg-card p-5 whitespace-pre-wrap text-sm leading-relaxed min-h-32">
-              {completion || (
-                <span className="text-muted-foreground animate-pulse">Escrevendo...</span>
-              )}
-            </div>
-          </div>
+                </div>
+                <div className="rounded-lg border bg-card p-5 whitespace-pre-wrap text-sm leading-relaxed min-h-32">
+                  {completion || <span className="text-muted-foreground animate-pulse">Escrevendo...</span>}
+                </div>
+              </div>
+            )}
+
+            {error && (
+              <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+                Erro ao gerar post. Tente novamente.
+              </div>
+            )}
+          </>
         )}
 
-        {error && (
-          <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-            Erro ao gerar post. Tente novamente.
-          </div>
+        {/* README mode */}
+        {mode === "readme" && (
+          <>
+            <div className="rounded-lg border bg-card p-6 space-y-4">
+              <div className="space-y-1">
+                <h2 className="font-semibold">Auto-README</h2>
+                <p className="text-sm text-muted-foreground">
+                  A IA analisa o contexto do repositório e gera um README.md completo e profissional.
+                </p>
+              </div>
+              <Button onClick={handleGenerateReadme} disabled={readmeGenerating} className="w-full" size="lg">
+                {readmeGenerating ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando README...</>
+                ) : (
+                  <><FileText className="mr-2 h-4 w-4" /> Gerar README</>
+                )}
+              </Button>
+            </div>
+
+            {(readmeCompletion || readmeGenerating) && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-medium">README gerado</h2>
+                  {readmeCompletion && !readmeGenerating && (
+                    <Button variant="outline" size="sm" onClick={() => handleCopy(readmeCompletion, setCopiedReadme)}>
+                      {copiedReadme ? <><Check className="h-3.5 w-3.5 mr-1.5" />Copiado!</> : <><Copy className="h-3.5 w-3.5 mr-1.5" />Copiar Markdown</>}
+                    </Button>
+                  )}
+                </div>
+                <div className="rounded-lg border bg-card p-5 whitespace-pre-wrap text-sm leading-relaxed font-mono min-h-32 max-h-[60vh] overflow-y-auto">
+                  {readmeCompletion || <span className="text-muted-foreground animate-pulse">Escrevendo...</span>}
+                </div>
+              </div>
+            )}
+
+            {readmeError && (
+              <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+                Erro ao gerar README. Tente novamente.
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>

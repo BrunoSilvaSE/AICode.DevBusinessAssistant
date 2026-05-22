@@ -1,5 +1,13 @@
+import { z } from "zod";
 import { createAuthedServerClient } from "@/lib/supabase/client";
 import { calculateSkills } from "@/lib/utils";
+
+const SyncSchema = z.object({
+  userId: z.string().min(1),
+  username: z.string().min(1),
+  fullName: z.string().nullable().optional(),
+  avatarUrl: z.string().url().nullable().optional(),
+});
 
 export async function POST(req: Request) {
   const jwt = req.headers.get("authorization")?.replace("Bearer ", "") ?? null;
@@ -9,13 +17,13 @@ export async function POST(req: Request) {
     return Response.json({ error: "Não autenticado" }, { status: 401 });
   }
 
-  const body = await req.json().catch(() => ({}));
-  const { userId, username, fullName, avatarUrl } = body as {
-    userId: string;
-    username: string;
-    fullName: string | null;
-    avatarUrl: string | null;
-  };
+  const raw = await req.json().catch(() => ({}));
+  const parsed = SyncSchema.safeParse(raw);
+  if (!parsed.success) {
+    return Response.json({ error: parsed.error.issues[0].message }, { status: 400 });
+  }
+
+  const { userId, username, fullName, avatarUrl } = parsed.data;
 
   const ghHeaders = {
     Authorization: `token ${githubToken}`,
@@ -23,15 +31,12 @@ export async function POST(req: Request) {
   };
 
   const [reposRes, ghUserRes] = await Promise.all([
-    fetch("https://api.github.com/user/repos?sort=updated&per_page=100&type=public", {
-      headers: ghHeaders,
-    }),
+    fetch("https://api.github.com/user/repos?sort=updated&per_page=100&type=public", { headers: ghHeaders }),
     fetch("https://api.github.com/user", { headers: ghHeaders }),
   ]);
 
   const repos = reposRes.ok ? await reposRes.json() : [];
   const ghUser = ghUserRes.ok ? await ghUserRes.json() : {};
-
   const skills = calculateSkills(repos);
 
   const supabase = createAuthedServerClient(jwt);
@@ -48,9 +53,6 @@ export async function POST(req: Request) {
     { onConflict: "user_id" }
   );
 
-  if (error) {
-    return Response.json({ error: error.message }, { status: 500 });
-  }
-
+  if (error) return Response.json({ error: error.message }, { status: 500 });
   return Response.json({ success: true });
 }

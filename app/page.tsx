@@ -40,21 +40,36 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div className="mt-24 grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-3xl w-full">
+        <div className="mt-24 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl w-full">
           <FeatureCard
             icon={<Zap className="h-5 w-5" />}
-            title="Portfólio automático"
-            description="Conecte o GitHub e seu portfólio é gerado na hora, com contexto técnico e narrativa."
+            title="Portfólio público"
+            description="URL pública /u/seu-usuario com hero, Skill Tree, linha do tempo e posts gerados."
           />
           <FeatureCard
             icon={<TrendingUp className="h-5 w-5" />}
             title="Post LinkedIn em 1 clique"
-            description="IA traduz seu trabalho técnico em linguagem de negócio para o LinkedIn."
+            description="IA traduz seu trabalho técnico em linguagem de negócio ou técnica para o LinkedIn."
           />
           <FeatureCard
             icon={<Users className="h-5 w-5" />}
             title="Skill Tree verificável"
-            description="Skills baseadas no seu código real — não em auto-declaração."
+            description="Skills inferidas do seu código real — não auto-declaração."
+          />
+          <FeatureCard
+            icon={<Zap className="h-5 w-5" />}
+            title="Linha do Tempo"
+            description="Adicione formação, bootcamps e experiências. Vincule repositórios open source."
+          />
+          <FeatureCard
+            icon={<TrendingUp className="h-5 w-5" />}
+            title="Auto-README"
+            description="IA gera um README.md profissional para qualquer repositório em segundos."
+          />
+          <FeatureCard
+            icon={<Users className="h-5 w-5" />}
+            title="Repos em Destaque"
+            description="Escolha até 3 projetos para aparecer no topo do seu portfólio público."
           />
         </div>
       </main>

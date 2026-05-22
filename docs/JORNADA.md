@@ -98,40 +98,48 @@ Lidar com o README em base64 vindo da API do GitHub. Esqueci que vinha encodado 
 
 ---
 
-## 📅 Dia 3 — Sábado 23/05 — Portfólio + Skill Tree
+## 📅 Dia 3 — Sábado 23/05 — Portfólio Público + Linha do Tempo
 
 ### O que tentei fazer
-Objetivo: transformar a ferramenta em uma plataforma de portfólio, permitindo salvar o histórico e visualizar as habilidades do desenvolvedor.
+Objetivo: transformar a ferramenta em uma plataforma de portfólio público completa, com Skill Tree persistida, linha do tempo editável e repositórios em destaque.
 
 Sequência real:
-1. Criação da tabela `posts` no Supabase com RLS (Row Level Security).
-2. Implementação do endpoint `api/posts` para salvar e recuperar posts.
-3. Atualização do Gerador (standalone e por repo) para salvar automaticamente o post após a geração usando o callback `onFinish`.
-4. Desenvolvimento de uma função utilitária `calculateSkills` seguindo TDD (Vitest) para agregar linguagens dos repositórios.
-5. Criação da página `/perfil` que consolida a "Skill Tree" verificada e o histórico de posts gerados.
-6. Habilitação do acesso ao perfil a partir do Dashboard.
+1. Criação das tabelas `posts`, `profiles` e `timeline_items` no Supabase com RLS completo.
+2. Endpoint `/api/posts` (GET/POST) com validação Zod para salvar e recuperar posts por usuário.
+3. Endpoint `/api/sync-profile` — chamado no login do Dashboard, sincroniza skills calculadas dos repos do GitHub para o banco, sem bloquear o fluxo do usuário.
+4. Portfólio público `/u/[username]` — hero com avatar, Skill Tree, mini-timeline e posts gerados. Página de servidor pura (sem "use client"), carregamento instantâneo.
+5. Timeline completa `/u/[username]/timeline` — nós verticais com ícone por tipo, cálculo de duração, cards coloridos e links clicáveis para repositórios vinculados.
+6. Editor `/timeline` — formulário para adicionar itens (work, education, bootcamp, certification, project) com dropdown de repos do GitHub para vincular ao item.
+7. Seleção de repos em destaque `/repos-destaque` — checkboxes com máximo 3, salvos em `profiles.featured_repos` (JSONB). Aparecem no portfólio como cards clicáveis.
+8. Auto-README: botão na página de repositório que chama `/api/generate-readme` — IA gera README.md completo em markdown usando contexto do repo.
+9. Dark mode toggle adicionado ao dashboard.
+10. Validação Zod em todos os endpoints de API.
 
-**Commits do dia:** ~6 commits (mantendo o ritmo XP + TDD)
+**Commits do dia:** ~12 commits seguindo Red → Green → Refactor
 
 ### Prompts que funcionaram bem
-- *"Crie uma função que receba uma lista de repositórios e retorne um ranking das linguagens mais usadas"* — a IA gerou a lógica e o teste em Vitest rapidamente.
-- *"Como salvar o resultado do useCompletion automaticamente?"* — a sugestão de usar o hook `onFinish` foi perfeita e evitou que o usuário tivesse que clicar em "Salvar" manualmente.
+- *"Quero um portfólio público para cada usuário. A abordagem mais robusta seria salvar as skills no banco no login e servir de lá"* — a IA propôs a arquitetura correta: sync-profile no dashboard + SELECT público no Supabase.
+- *"A timeline deve ter uma versão resumida no portfólio com link para a completa"* — gerou os dois componentes de uma vez com design consistente.
+- *"Vincular um repositório do GitHub ao item da timeline"* — a IA adicionou o dropdown de seleção no formulário e o link `<ExternalLink>` nos nós, tudo coerente.
 
 ### Prompts que precisaram ser refeitos
-- Tentei fazer a agregação de skills no banco (via SQL), mas como os dados vêm da API do GitHub em tempo real, foi muito mais simples e performático fazer no frontend (ou numa utils compartilhada). A IA inicialmente insistiu na solução SQL até eu explicar a origem dos dados.
+- Primeira versão de `/u/[username]/page.tsx` fazia um `fetch` interno para `http://localhost:3000/api/u/[username]` — quebra em produção (a URL é do servidor local). Corrigido chamando o Supabase diretamente no server component, sem round-trip HTTP.
+- Zod v4 usa `parsed.error.issues` (não `.errors`). A IA gerou o código v3-style. Corrigido em todos os endpoints após o primeiro erro de teste.
+- Input `type="month"` espera `yyyy-MM` mas o state armazenava `yyyy-MM-dd` — o `value` do input explotou. Corrigido com `.slice(0, 7)`.
 
 ### Momento UAU
-Ver a "Skill Tree" se montando sozinha a partir dos meus repositórios reais deu uma sensação de "gamificação" muito legal pro projeto. Deixa de ser apenas um gerador de texto e passa a ser uma prova social do que eu realmente sei codar.
+O portfólio público ficou bonito e utilizável com menos de 200 linhas de componente React. O server component carrega tudo sem loading spinner — dados chegam prontos. Ver meu próprio portfólio em `/u/BrunoSilvaSE` com skills reais do GitHub, posts gerados pela IA e uma linha do tempo foi o momento mais satisfatório do projeto inteiro.
 
 ### Momento frustrante
-Configurar as políticas de RLS no Supabase. Esqueci que o `auth.uid()` precisa de um setup correto no cliente para ser reconhecido. Perdi uns 15 minutos debugando por que os posts não estavam salvando até perceber que era permissão de banco.
+As migrações SQL no Supabase precisaram ser rodadas manualmente. A tentativa de usar a service role key via REST API falhou — ela não tem acesso à Management API (que exige um Personal Access Token separado). A CLI do Supabase também não estava instalada. Três tentativas de rodar o mesmo SQL com erros diferentes antes de chegar no script correto (posts não existia ainda quando o profiles tentou criar a policy).
 
 ### O que aprendi hoje
-- **TDD em pequenas funções** (como o `calculateSkills`) economiza um tempo absurdo de "save and refresh" no navegador.
-- **RLS (Row Level Security)** é poderoso mas silencioso — se você erra a política, o código simplesmente não faz nada (ou retorna vazio) sem dar erro explícito no console às vezes.
-- **Callback pattern**: hooks como `onFinish` do AI SDK facilitam muito a orquestração de efeitos colaterais (como salvar no banco) sem poluir a lógica principal de renderização.
+- **Server components no Next.js 16**: não usar `fetch` para si mesmo em produção. Chamar o banco diretamente é mais eficiente e não depende de URL de ambiente.
+- **Zod v4 quebrou a API de erro**: `.errors` virou `.issues`. Bibliotecas que atualizam versão major mudam APIs — sempre verificar o CHANGELOG quando a IA gera código v3-style numa v4.
+- **JSONB no Postgres é poderoso**: armazenar `featured_repos` e `skills` como JSONB evitou precisar de tabelas de relacionamento. Para listas pequenas e estáticas por usuário, é a escolha certa.
+- **Streaming em duas rotas paralelas**: usar dois `useCompletion` distintos na mesma página (um pra post, outro pro README) funciona perfeitamente — cada um tem seu estado isolado.
 
-**Marco do dia atingido:** o projeto agora tem "memória" e uma identidade visual para o desenvolvedor.
+**Marco do dia atingido:** portfólio público completo, linha do tempo editável, repos em destaque e Auto-README funcionando em produção.
 
 ---
 
