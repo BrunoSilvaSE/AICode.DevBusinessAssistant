@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { createClient } from "@supabase/supabase-js";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, MessageSquare } from "lucide-react";
 import { GitHubIcon } from "@/components/icons/github";
@@ -12,6 +13,7 @@ type Post = {
   created_at: string;
 };
 type Profile = {
+  user_id: string;
   username: string;
   full_name: string | null;
   avatar_url: string | null;
@@ -19,13 +21,32 @@ type Profile = {
   skills: Skill[];
 };
 
+function serverSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
+
 async function fetchPublicProfile(username: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const res = await fetch(`${baseUrl}/api/u/${username}`, {
-    next: { revalidate: 60 },
-  });
-  if (!res.ok) return null;
-  return res.json() as Promise<{ profile: Profile; posts: Post[] }>;
+  const supabase = serverSupabase();
+
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("username", username)
+    .single();
+
+  if (error || !profile) return null;
+
+  const { data: posts } = await supabase
+    .from("posts")
+    .select("id, repo_name, tone, content, created_at")
+    .eq("user_id", (profile as Profile).user_id)
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  return { profile: profile as Profile, posts: (posts ?? []) as Post[] };
 }
 
 export default async function PublicProfilePage({
