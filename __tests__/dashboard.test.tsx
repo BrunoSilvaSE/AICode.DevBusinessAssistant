@@ -10,12 +10,16 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/supabase/client", () => ({
   createBrowserClient: vi.fn(() => ({
     auth: {
-      getUser: vi.fn().mockResolvedValue({
+      getSession: vi.fn().mockResolvedValue({
         data: {
-          user: {
-            id: "user-123",
-            email: "dev@example.com",
-            user_metadata: { full_name: "Bruno Silva" },
+          session: {
+            user: {
+              id: "user-123",
+              email: "dev@example.com",
+              user_metadata: { full_name: "Bruno Silva", user_name: "brunosilva" },
+            },
+            access_token: "jwt-fake",
+            provider_token: "gho_fake",
           },
         },
         error: null,
@@ -23,6 +27,8 @@ vi.mock("@/lib/supabase/client", () => ({
     },
   })),
 }));
+
+global.fetch = vi.fn().mockResolvedValue(new Response("{}", { status: 200 }));
 
 import DashboardPage from "../app/dashboard/page";
 
@@ -47,7 +53,10 @@ describe("Dashboard Page", () => {
     const { createBrowserClient } = await import("@/lib/supabase/client");
     vi.mocked(createBrowserClient).mockReturnValueOnce({
       auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+        getSession: vi.fn().mockResolvedValue({
+          data: { session: null },
+          error: null,
+        }),
       },
     } as never);
 

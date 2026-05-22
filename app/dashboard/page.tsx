@@ -14,11 +14,29 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const supabase = createBrowserClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) {
+    supabase.auth.getSession().then(({ data }) => {
+      const session = data.session;
+      if (!session?.user) {
         router.push("/login");
-      } else {
-        setUser(user);
+        return;
+      }
+      setUser(session.user as User);
+
+      if (session.provider_token && session.access_token) {
+        fetch("/api/sync-profile", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+            "X-GitHub-Token": session.provider_token,
+          },
+          body: JSON.stringify({
+            userId: session.user.id,
+            username: session.user.user_metadata?.user_name ?? session.user.email,
+            fullName: session.user.user_metadata?.full_name ?? null,
+            avatarUrl: session.user.user_metadata?.avatar_url ?? null,
+          }),
+        }).catch(() => {});
       }
     });
   }, [router]);
@@ -111,6 +129,16 @@ export default function DashboardPage() {
               <span className="font-medium text-foreground">{name}</span> ·{" "}
               {user.email}
             </p>
+            {user.user_metadata?.user_name && (
+              <div className="mt-3 pt-3 border-t">
+                <Link
+                  href={`/u/${user.user_metadata.user_name}`}
+                  className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4"
+                >
+                  Ver portfólio público → /u/{user.user_metadata.user_name}
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </main>
