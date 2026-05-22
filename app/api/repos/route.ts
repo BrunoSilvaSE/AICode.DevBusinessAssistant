@@ -5,16 +5,18 @@ export async function GET(req: Request) {
   }
 
   const res = await fetch(
-    "https://api.github.com/user/repos?sort=updated&per_page=30&type=public&visibility=public",
+    "https://api.github.com/user/repos?sort=updated&per_page=30&type=public",
     {
       headers: {
-        Authorization: `Bearer ${githubToken}`,
+        Authorization: `token ${githubToken}`,
         Accept: "application/vnd.github+json",
       },
     }
   );
 
   if (!res.ok) {
+    const detail = await res.text();
+    console.error("GitHub API error:", res.status, detail);
     return Response.json({ error: "Erro ao buscar repos do GitHub" }, { status: 502 });
   }
 

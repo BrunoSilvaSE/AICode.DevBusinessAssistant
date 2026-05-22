@@ -37,9 +37,10 @@ export default function RepositoriosPage() {
       })
         .then((res) => {
           if (res.status === 401) { router.push("/login"); return null; }
+          if (!res.ok) { setError("Erro ao carregar repositórios."); return null; }
           return res.json();
         })
-        .then((data) => { if (data) setRepos(data); })
+        .then((data) => { if (Array.isArray(data)) setRepos(data); })
         .catch(() => setError("Erro ao carregar repositórios."))
         .finally(() => setLoading(false));
     });

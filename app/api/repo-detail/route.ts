@@ -13,7 +13,7 @@ export async function GET(req: Request) {
   }
 
   const headers = {
-    Authorization: `Bearer ${githubToken}`,
+    Authorization: `token ${githubToken}`,
     Accept: "application/vnd.github+json",
   };
 
