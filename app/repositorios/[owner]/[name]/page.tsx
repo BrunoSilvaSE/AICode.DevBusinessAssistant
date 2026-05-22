@@ -36,6 +36,7 @@ export default function RepoDetailPage() {
   const { completion, complete, isLoading: generating, error } = useCompletion({
     api: "/api/generate-post",
     body: { tone },
+    streamProtocol: "text",
   });
 
   // Save post when generation finishes (generating flips false→true→false).

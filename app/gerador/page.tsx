@@ -28,6 +28,7 @@ export default function GeradorPage() {
   const { completion, complete, isLoading, error } = useCompletion({
     api: "/api/generate-post",
     body: { tone },
+    streamProtocol: "text",
   });
 
   useEffect(() => {
