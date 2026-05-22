@@ -1,5 +1,3 @@
-import { createBrowserClient } from "@/lib/supabase/client";
-
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const owner = searchParams.get("owner");
@@ -9,15 +7,13 @@ export async function GET(req: Request) {
     return Response.json({ error: "owner e name são obrigatórios" }, { status: 400 });
   }
 
-  const supabase = createBrowserClient();
-  const { data: { session } } = await supabase.auth.getSession();
-
-  if (!session?.provider_token) {
+  const githubToken = req.headers.get("x-github-token");
+  if (!githubToken) {
     return Response.json({ error: "Não autenticado" }, { status: 401 });
   }
 
   const headers = {
-    Authorization: `Bearer ${session.provider_token}`,
+    Authorization: `Bearer ${githubToken}`,
     Accept: "application/vnd.github+json",
   };
 

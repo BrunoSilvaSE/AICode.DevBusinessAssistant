@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, RefreshCw, Github, Calendar, MessageSquare } from "lucide-react";
 import Link from "next/link";
+import type { User } from "@supabase/supabase-js";
 
 type Post = {
   id: string;
@@ -24,42 +25,42 @@ type Skill = {
 
 export default function PerfilPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const supabase = createBrowserClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) {
+    supabase.auth.getSession().then(({ data }) => {
+      const session = data.session;
+      if (!session?.provider_token || !session.access_token) {
         router.push("/login");
-      } else {
-        setUser(user);
-        fetchData();
+        return;
       }
+
+      setUser(session.user as User);
+
+      Promise.all([
+        fetch("/api/repos", {
+          headers: { "X-GitHub-Token": session.provider_token },
+        }),
+        fetch("/api/posts", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        }),
+      ])
+        .then(async ([reposRes, postsRes]) => {
+          if (reposRes.ok && postsRes.ok) {
+            const repos = await reposRes.json();
+            const postsData = await postsRes.json();
+            setSkills(calculateSkills(repos));
+            setPosts(postsData);
+          }
+        })
+        .catch(console.error)
+        .finally(() => setLoading(false));
     });
   }, [router]);
-
-  async function fetchData() {
-    try {
-      const [reposRes, postsRes] = await Promise.all([
-        fetch("/api/repos"),
-        fetch("/api/posts"),
-      ]);
-
-      if (reposRes.ok && postsRes.ok) {
-        const repos = await reposRes.json();
-        const postsData = await postsRes.json();
-        setSkills(calculateSkills(repos));
-        setPosts(postsData);
-      }
-    } catch (error) {
-      console.error("Erro ao carregar perfil:", error);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   if (loading) {
     return (

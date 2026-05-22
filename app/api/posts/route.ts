@@ -1,10 +1,19 @@
-import { createBrowserClient } from "@/lib/supabase/client";
+import { createAuthedServerClient } from "@/lib/supabase/client";
+
+function extractJwt(req: Request): string | null {
+  const header = req.headers.get("authorization");
+  return header?.startsWith("Bearer ") ? header.slice(7) : null;
+}
 
 export async function POST(req: Request) {
-  const supabase = createBrowserClient();
-  const { data: { session } } = await supabase.auth.getSession();
+  const jwt = extractJwt(req);
+  if (!jwt) {
+    return Response.json({ error: "Não autenticado" }, { status: 401 });
+  }
 
-  if (!session) {
+  const supabase = createAuthedServerClient(jwt);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
     return Response.json({ error: "Não autenticado" }, { status: 401 });
   }
 
@@ -20,7 +29,7 @@ export async function POST(req: Request) {
   }
 
   const { error } = await supabase.from("posts").insert({
-    user_id: session.user.id,
+    user_id: user.id,
     repo_name,
     tone,
     content,
@@ -34,10 +43,14 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
-  const supabase = createBrowserClient();
-  const { data: { session } } = await supabase.auth.getSession();
+  const jwt = extractJwt(req);
+  if (!jwt) {
+    return Response.json({ error: "Não autenticado" }, { status: 401 });
+  }
 
-  if (!session) {
+  const supabase = createAuthedServerClient(jwt);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
     return Response.json({ error: "Não autenticado" }, { status: 401 });
   }
 

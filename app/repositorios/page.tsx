@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { createBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Star, RefreshCw } from "lucide-react";
 
@@ -23,19 +24,25 @@ export default function RepositoriosPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/repos")
-      .then((res) => {
-        if (res.status === 401) {
-          router.push("/login");
-          return null;
-        }
-        return res.json();
+    const supabase = createBrowserClient();
+    supabase.auth.getSession().then(({ data }) => {
+      const providerToken = data.session?.provider_token;
+      if (!providerToken) {
+        router.push("/login");
+        return;
+      }
+
+      fetch("/api/repos", {
+        headers: { "X-GitHub-Token": providerToken },
       })
-      .then((data) => {
-        if (data) setRepos(data);
-      })
-      .catch(() => setError("Erro ao carregar repositórios."))
-      .finally(() => setLoading(false));
+        .then((res) => {
+          if (res.status === 401) { router.push("/login"); return null; }
+          return res.json();
+        })
+        .then((data) => { if (data) setRepos(data); })
+        .catch(() => setError("Erro ao carregar repositórios."))
+        .finally(() => setLoading(false));
+    });
   }, [router]);
 
   return (

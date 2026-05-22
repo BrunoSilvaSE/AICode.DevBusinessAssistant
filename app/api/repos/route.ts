@@ -1,20 +1,14 @@
-import { createBrowserClient } from "@/lib/supabase/client";
-
-export async function GET(_req: Request) {
-  const supabase = createBrowserClient();
-  const { data: { session } } = await supabase.auth.getSession();
-
-  if (!session?.provider_token) {
+export async function GET(req: Request) {
+  const githubToken = req.headers.get("x-github-token");
+  if (!githubToken) {
     return Response.json({ error: "Não autenticado" }, { status: 401 });
   }
 
-  const username = session.user.user_metadata?.user_name as string;
-
   const res = await fetch(
-    `https://api.github.com/users/${username}/repos?sort=updated&per_page=30&type=public`,
+    "https://api.github.com/user/repos?sort=updated&per_page=30&type=public&visibility=public",
     {
       headers: {
-        Authorization: `Bearer ${session.provider_token}`,
+        Authorization: `Bearer ${githubToken}`,
         Accept: "application/vnd.github+json",
       },
     }

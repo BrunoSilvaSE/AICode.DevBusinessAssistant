@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import { createBrowserClient } from "@/lib/supabase/client";
 import { useCompletion } from "@ai-sdk/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,30 +30,47 @@ export default function RepoDetailPage() {
   const [tone, setTone] = useState<Tone>("business");
   const [copied, setCopied] = useState(false);
 
+  // Refs hold the latest tokens for use inside callbacks without stale closures.
+  const supabaseTokenRef = useRef<string | null>(null);
+
   const { completion, complete, isLoading: generating, error } = useCompletion({
     api: "/api/generate-post",
     body: { tone },
     onFinish: (_prompt, completion) => {
+      const jwt = supabaseTokenRef.current;
+      if (!jwt) return;
       fetch("/api/posts", {
         method: "POST",
-        body: JSON.stringify({
-          repo_name: params.name,
-          tone,
-          content: completion,
-        }),
-        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repo_name: params.name, tone, content: completion }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${jwt}`,
+        },
       });
     },
   });
 
   useEffect(() => {
-    fetch(`/api/repo-detail?owner=${params.owner}&name=${params.name}`)
-      .then((res) => {
-        if (res.status === 401) { router.push("/login"); return null; }
-        return res.json();
+    const supabase = createBrowserClient();
+    supabase.auth.getSession().then(({ data }) => {
+      const session = data.session;
+      if (!session?.provider_token) {
+        router.push("/login");
+        return;
+      }
+
+      supabaseTokenRef.current = session.access_token;
+
+      fetch(`/api/repo-detail?owner=${params.owner}&name=${params.name}`, {
+        headers: { "X-GitHub-Token": session.provider_token },
       })
-      .then((data) => { if (data) setRepo(data); })
-      .finally(() => setLoading(false));
+        .then((res) => {
+          if (res.status === 401) { router.push("/login"); return null; }
+          return res.json();
+        })
+        .then((data) => { if (data) setRepo(data); })
+        .finally(() => setLoading(false));
+    });
   }, [params.owner, params.name, router]);
 
   async function handleGenerate() {
