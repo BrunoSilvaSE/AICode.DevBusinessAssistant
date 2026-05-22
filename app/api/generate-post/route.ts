@@ -36,14 +36,17 @@ Retorne APENAS o texto do post, sem explicações adicionais.`,
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
-  const { input, tone = "business" } = body as {
+  // useCompletion (AI SDK) sends the text as `prompt`; direct calls may use `input`.
+  const { prompt, input, tone = "business" } = body as {
+    prompt?: string;
     input?: string;
     tone?: string;
   };
+  const text = prompt ?? input;
 
-  if (!input || input.trim().length < 10) {
+  if (!text || text.trim().length < 10) {
     return Response.json(
-      { error: "O campo 'input' é obrigatório e deve ter ao menos 10 caracteres." },
+      { error: "O campo 'prompt' é obrigatório e deve ter ao menos 10 caracteres." },
       { status: 400 }
     );
   }
@@ -60,7 +63,7 @@ export async function POST(req: Request) {
   const result = await streamText({
     model,
     system: systemPrompt,
-    prompt: `Texto do desenvolvedor:\n\n${input.trim()}`,
+    prompt: `Texto do desenvolvedor:\n\n${text.trim()}`,
     maxOutputTokens: 500,
     temperature: 0.7,
   });

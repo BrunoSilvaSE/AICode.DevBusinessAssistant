@@ -20,7 +20,7 @@ describe("POST /api/generate-post", () => {
     vi.clearAllMocks();
   });
 
-  it("returns 400 when input is missing", async () => {
+  it("returns 400 when prompt is missing", async () => {
     const req = new Request("http://localhost/api/generate-post", {
       method: "POST",
       body: JSON.stringify({}),
@@ -30,21 +30,21 @@ describe("POST /api/generate-post", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 400 when input is too short", async () => {
+  it("returns 400 when prompt is too short", async () => {
     const req = new Request("http://localhost/api/generate-post", {
       method: "POST",
-      body: JSON.stringify({ input: "hi" }),
+      body: JSON.stringify({ prompt: "hi" }),
       headers: { "Content-Type": "application/json" },
     });
     const res = await POST(req);
     expect(res.status).toBe(400);
   });
 
-  it("returns a streaming response for valid input", async () => {
+  it("returns a streaming response for valid prompt", async () => {
     const req = new Request("http://localhost/api/generate-post", {
       method: "POST",
       body: JSON.stringify({
-        input: "Refatorei o sistema de autenticação para usar JWT com refresh tokens",
+        prompt: "Refatorei o sistema de autenticação para usar JWT com refresh tokens",
         tone: "business",
       }),
       headers: { "Content-Type": "application/json" },
@@ -57,7 +57,7 @@ describe("POST /api/generate-post", () => {
     const req = new Request("http://localhost/api/generate-post", {
       method: "POST",
       body: JSON.stringify({
-        input: "Implementei cache distribuído com Redis para reduzir latência em 60%",
+        prompt: "Implementei cache distribuído com Redis para reduzir latência em 60%",
         tone: "technical",
       }),
       headers: { "Content-Type": "application/json" },
