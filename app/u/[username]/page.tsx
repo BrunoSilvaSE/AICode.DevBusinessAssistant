@@ -6,6 +6,7 @@ import { Calendar, MapPin, ExternalLink, Star, ChevronRight } from "lucide-react
 import { GitHubIcon } from "@/components/icons/github";
 import { PortfolioNav } from "./PortfolioNav";
 import { SkillsSection } from "./SkillsSection";
+import { ContactForm } from "./ContactForm";
 
 type Skill = { name: string; count: number };
 type Post = { id: string; repo_name: string; tone: string; content: string; created_at: string };
@@ -367,58 +368,69 @@ export default async function PublicProfilePage({
         id="contato"
         className="py-16 sm:py-24 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-white"
       >
-        <div className="max-w-4xl mx-auto px-6 text-center space-y-6">
-          <p className="text-xs font-semibold uppercase tracking-widest text-blue-400">
-            Contato
-          </p>
-          <h2 className="text-2xl sm:text-3xl font-bold">Vamos Conversar?</h2>
-          <p className="text-slate-400 max-w-sm mx-auto text-sm">
-            Entre em contato pelo GitHub ou LinkedIn para colaborações, projetos e oportunidades.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <a
-              href={`https://github.com/${profile.username}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-slate-900 hover:bg-slate-100 transition-colors font-medium text-sm"
-            >
-              <GitHubIcon className="h-5 w-5" />
-              GitHub
-            </a>
-            {profile.linkedin_url && (
+        <div className="max-w-4xl mx-auto px-6 space-y-10">
+          <div className="text-center space-y-4">
+            <p className="text-xs font-semibold uppercase tracking-widest text-blue-400">
+              Contato
+            </p>
+            <h2 className="text-2xl sm:text-3xl font-bold">Vamos Conversar?</h2>
+            <p className="text-slate-400 max-w-sm mx-auto text-sm">
+              Preencha o formulário ou entre em contato pelas redes sociais.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
               <a
-                href={profile.linkedin_url}
+                href={`https://github.com/${profile.username}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#0077B5] text-white hover:bg-[#005885] transition-colors font-medium text-sm"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-slate-900 hover:bg-slate-100 transition-colors font-medium text-sm"
               >
-                <LinkedInIcon className="h-5 w-5" />
-                LinkedIn
+                <GitHubIcon className="h-5 w-5" />
+                GitHub
               </a>
-            )}
-            {profile.whatsapp && (
-              <a
-                href={`https://wa.me/${profile.whatsapp}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#25D366] text-white hover:bg-[#1da851] transition-colors font-medium text-sm"
-              >
-                <WhatsAppIcon className="h-5 w-5" />
-                WhatsApp
-              </a>
-            )}
-            {profile.instagram_url && (
-              <a
-                href={profile.instagram_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white hover:opacity-90 transition-opacity font-medium text-sm"
-              >
-                <InstagramIcon className="h-5 w-5" />
-                Instagram
-              </a>
-            )}
+              {profile.linkedin_url && (
+                <a
+                  href={profile.linkedin_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#0077B5] text-white hover:bg-[#005885] transition-colors font-medium text-sm"
+                >
+                  <LinkedInIcon className="h-5 w-5" />
+                  LinkedIn
+                </a>
+              )}
+              {profile.whatsapp && (
+                <a
+                  href={`https://wa.me/${profile.whatsapp}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#25D366] text-white hover:bg-[#1da851] transition-colors font-medium text-sm"
+                >
+                  <WhatsAppIcon className="h-5 w-5" />
+                  WhatsApp
+                </a>
+              )}
+              {profile.instagram_url && (
+                <a
+                  href={profile.instagram_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white hover:opacity-90 transition-opacity font-medium text-sm"
+                >
+                  <InstagramIcon className="h-5 w-5" />
+                  Instagram
+                </a>
+              )}
+            </div>
           </div>
+
+          {/* Divider */}
+          <div className="flex items-center gap-4">
+            <div className="flex-1 h-px bg-white/10" />
+            <span className="text-xs text-slate-500 uppercase tracking-widest">ou envie uma mensagem</span>
+            <div className="flex-1 h-px bg-white/10" />
+          </div>
+
+          <ContactForm username={profile.username} />
         </div>
       </section>
 

@@ -7,10 +7,12 @@ import { createBrowserClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { GitHubIcon } from "@/components/icons/github";
+import { DashboardInbox } from "@/components/DashboardInbox";
 
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
+  const [jwt, setJwt] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = createBrowserClient();
@@ -21,6 +23,7 @@ export default function DashboardPage() {
         return;
       }
       setUser(session.user as User);
+      setJwt(session.access_token);
 
       if (session.provider_token && session.access_token) {
         fetch("/api/sync-profile", {
@@ -64,6 +67,7 @@ export default function DashboardPage() {
             Dev Business Assistant
           </span>
           <div className="flex items-center gap-2">
+            {jwt && <DashboardInbox jwt={jwt} />}
             {avatarUrl && (
               <img src={avatarUrl} alt={name} className="h-8 w-8 rounded-full" />
             )}
