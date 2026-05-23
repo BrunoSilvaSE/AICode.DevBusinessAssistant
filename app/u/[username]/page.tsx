@@ -8,6 +8,7 @@ import { PortfolioNav } from "./PortfolioNav";
 import { SkillsSection } from "./SkillsSection";
 import { ContactForm } from "./ContactForm";
 import { MermaidDiagram } from "@/components/MermaidDiagram";
+import { CopyLinkedInButton } from "@/components/CopyLinkedInButton";
 
 type Skill = { name: string; count: number };
 type Post = { id: string; repo_name: string; tone: string; content: string; created_at: string };
@@ -606,6 +607,9 @@ function PostCard({ post }: { post: Post }) {
       <p className="text-sm leading-relaxed whitespace-pre-wrap line-clamp-8 flex-1">
         {post.content}
       </p>
+      <div className="pt-1 border-t flex justify-end">
+        <CopyLinkedInButton text={post.content} />
+      </div>
     </div>
   );
 }

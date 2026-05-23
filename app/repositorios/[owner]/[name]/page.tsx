@@ -7,7 +7,7 @@ import { createBrowserClient } from "@/lib/supabase/client";
 import { useCompletion } from "@ai-sdk/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Star, Copy, Check, Loader2, ExternalLink, FileText, GitBranch, Save } from "lucide-react";
+import { ArrowLeft, Star, Copy, Check, Loader2, ExternalLink, FileText, GitBranch, Save, Share2 } from "lucide-react";
 import { MermaidDiagram } from "@/components/MermaidDiagram";
 
 type RepoDetail = {
@@ -34,6 +34,7 @@ export default function RepoDetailPage() {
   const [copiedPost, setCopiedPost] = useState(false);
   const [copiedReadme, setCopiedReadme] = useState(false);
   const [diagramSaved, setDiagramSaved] = useState(false);
+  const [sharedLinkedIn, setSharedLinkedIn] = useState(false);
 
   const supabaseTokenRef = useRef<string | null>(null);
   const wasGeneratingRef = useRef(false);
@@ -154,6 +155,13 @@ export default function RepoDetailPage() {
     await navigator.clipboard.writeText(text);
     setter(true);
     setTimeout(() => setter(false), 2000);
+  }
+
+  async function handleShareLinkedIn(text: string) {
+    await navigator.clipboard.writeText(text);
+    setSharedLinkedIn(true);
+    setTimeout(() => setSharedLinkedIn(false), 3000);
+    window.open("https://www.linkedin.com/feed/", "_blank", "noopener,noreferrer");
   }
 
   if (loading) {
@@ -286,9 +294,17 @@ export default function RepoDetailPage() {
                 <div className="flex items-center justify-between">
                   <h2 className="text-sm font-medium">Post gerado</h2>
                   {completion && !generating && (
-                    <Button variant="outline" size="sm" onClick={() => handleCopy(completion, setCopiedPost)}>
-                      {copiedPost ? <><Check className="h-3.5 w-3.5 mr-1.5" />Copiado!</> : <><Copy className="h-3.5 w-3.5 mr-1.5" />Copiar</>}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => handleCopy(completion, setCopiedPost)}>
+                        {copiedPost ? <><Check className="h-3.5 w-3.5 mr-1.5" />Copiado!</> : <><Copy className="h-3.5 w-3.5 mr-1.5" />Copiar</>}
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleShareLinkedIn(completion)}
+                        className="bg-[#0077B5]/10 border-[#0077B5]/30 text-[#0077B5] hover:bg-[#0077B5]/20 dark:text-blue-400 dark:border-blue-400/30 dark:bg-blue-400/10">
+                        {sharedLinkedIn
+                          ? <><Check className="h-3.5 w-3.5 mr-1.5" />Copiado!</>
+                          : <><Share2 className="h-3.5 w-3.5 mr-1.5" />LinkedIn</>}
+                      </Button>
+                    </div>
                   )}
                 </div>
                 <div className="rounded-lg border bg-card p-5 whitespace-pre-wrap text-sm leading-relaxed min-h-32">
