@@ -3,6 +3,16 @@
 import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createBrowserClient } from "@/lib/supabase/client";
+import { Loader2 } from "lucide-react";
+
+function AuthSpinner({ message }: { message: string }) {
+  return (
+    <div className="flex min-h-screen items-center justify-center flex-col gap-4">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <p className="text-sm text-muted-foreground">{message}</p>
+    </div>
+  );
+}
 
 function CallbackHandler() {
   const router = useRouter();
@@ -13,15 +23,12 @@ function CallbackHandler() {
     const supabase = createBrowserClient();
 
     if (code) {
-      // PKCE flow: exchange code for session
       supabase.auth
         .exchangeCodeForSession(code)
         .then(({ error }) => router.push(error ? "/login" : "/dashboard"));
       return;
     }
 
-    // Implicit flow: Supabase processes the hash fragment automatically on init.
-    // onAuthStateChange fires with SIGNED_IN once the token is parsed.
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
@@ -31,7 +38,6 @@ function CallbackHandler() {
       }
     });
 
-    // Fallback: if SIGNED_IN already fired before listener attached, check directly.
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         subscription.unsubscribe();
@@ -39,7 +45,6 @@ function CallbackHandler() {
       }
     });
 
-    // Safety timeout: if nothing fires in 5s, send to login.
     const timeout = setTimeout(() => {
       subscription.unsubscribe();
       router.push("/login");
@@ -51,22 +56,12 @@ function CallbackHandler() {
     };
   }, [router, searchParams]);
 
-  return (
-    <div className="flex min-h-screen items-center justify-center">
-      <p className="text-muted-foreground text-sm">Autenticando...</p>
-    </div>
-  );
+  return <AuthSpinner message="Autenticando com GitHub..." />;
 }
 
 export default function AuthCallbackPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center">
-          <p className="text-muted-foreground text-sm">Autenticando...</p>
-        </div>
-      }
-    >
+    <Suspense fallback={<AuthSpinner message="Carregando..." />}>
       <CallbackHandler />
     </Suspense>
   );

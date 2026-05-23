@@ -9,7 +9,10 @@ import { Button } from "@/components/ui/button";
 import { GitHubIcon } from "@/components/icons/github";
 import { DashboardInbox } from "@/components/DashboardInbox";
 import { ProfileAnalysisCard } from "@/components/ProfileAnalysisCard";
-import { Copy, Check, ExternalLink } from "lucide-react";
+import {
+  Copy, Check, ExternalLink, Loader2,
+  FolderGit2, GitBranch, Calendar, Star, UserCog, Wand2,
+} from "lucide-react";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -48,32 +51,33 @@ export default function DashboardPage() {
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Carregando...</p>
+      <div className="flex min-h-screen items-center justify-center flex-col gap-3">
+        <Loader2 className="h-7 w-7 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Carregando painel...</p>
       </div>
     );
   }
 
-  const name =
-    user.user_metadata?.full_name ||
-    user.user_metadata?.name ||
-    user.email;
-
+  const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email;
   const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
+  const username = user.user_metadata?.user_name as string | undefined;
+  const initials = (name as string)?.[0]?.toUpperCase() ?? "?";
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <header className="border-b">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <span className="font-semibold text-sm tracking-tight">
-            Dev Business Assistant
-          </span>
+      <header className="border-b bg-background/95 backdrop-blur sticky top-0 z-40">
+        <div className="max-w-5xl mx-auto px-6 py-3.5 flex items-center justify-between">
+          <span className="font-bold text-sm tracking-tight">Dev Business Assistant</span>
           <div className="flex items-center gap-2">
             {jwt && <DashboardInbox jwt={jwt} />}
-            {avatarUrl && (
-              <img src={avatarUrl} alt={name} className="h-8 w-8 rounded-full" />
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={name as string} className="h-8 w-8 rounded-full ring-2 ring-border" />
+            ) : (
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary ring-2 ring-border">
+                {initials}
+              </div>
             )}
-            <Button asChild variant="ghost" size="sm">
+            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
               <Link href="/perfil">Ver Perfil</Link>
             </Button>
             <Button
@@ -90,78 +94,90 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-12">
+      <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-10">
         <div className="space-y-8">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              Olá, {name}! 👋
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Bem-vindo ao seu painel. Vamos construir sua marca pessoal.
-            </p>
+          {/* Greeting */}
+          <div className="flex items-start gap-4">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={name as string} className="h-14 w-14 rounded-full ring-2 ring-border hidden sm:block" />
+            ) : (
+              <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center text-xl font-bold text-primary ring-2 ring-border hidden sm:block">
+                {initials}
+              </div>
+            )}
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                Olá, {(name as string)?.split(" ")[0]}! 👋
+              </h1>
+              <p className="text-muted-foreground mt-1 text-sm">
+                Bem-vindo ao seu painel. Vamos construir sua marca pessoal.
+              </p>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <DashCard
+              icon={<FolderGit2 className="h-5 w-5" />}
               title="Repositórios"
               description="Liste e explore seus repos públicos do GitHub."
               href="/repositorios"
-              soon={false}
             />
             <DashCard
+              icon={<Wand2 className="h-5 w-5" />}
               title="Gerar Post LinkedIn"
-              description="Transforme qualquer texto em post de impacto."
+              description="Transforme qualquer texto em post de impacto com IA."
               href="/gerador"
-              soon={false}
             />
             <DashCard
+              icon={<GitBranch className="h-5 w-5" />}
               title="Skill Tree"
-              description="Visualize suas skills inferidas do código real."
+              description="Visualize suas skills verificadas pelo código real."
               href="/perfil"
-              soon={false}
             />
             <DashCard
+              icon={<Calendar className="h-5 w-5" />}
               title="Linha do Tempo"
-              description="Adicione formação, experiências e certificações ao seu portfólio."
+              description="Adicione formação, experiências e certificações."
               href="/timeline"
-              soon={false}
             />
             <DashCard
+              icon={<Star className="h-5 w-5" />}
               title="Repos em Destaque"
-              description="Escolha até 3 repositórios para exibir no seu portfólio público."
+              description="Escolha repositórios para exibir no portfólio público."
               href="/repos-destaque"
-              soon={false}
             />
             <DashCard
+              icon={<UserCog className="h-5 w-5" />}
               title="Editar Perfil"
-              description="Adicione 'Sobre Mim', título profissional, localização e LinkedIn."
+              description="Bio, título profissional, localização e redes sociais."
               href="/editar-perfil"
-              soon={false}
             />
           </div>
 
           {jwt && <ProfileAnalysisCard jwt={jwt} />}
 
-          <div className="rounded-lg border bg-card p-6">
+          {/* Account info */}
+          <div className="rounded-xl border bg-card p-6">
             <div className="flex items-center gap-3 mb-3">
               <GitHubIcon className="h-5 w-5" />
               <h2 className="font-semibold">Conta conectada</h2>
             </div>
             <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">{name}</span> ·{" "}
-              {user.email}
+              <span className="font-medium text-foreground">{name}</span>
+              {user.email && <> · {user.email}</>}
             </p>
-            {user.user_metadata?.user_name && (
+            {username && (
               <div className="mt-3 pt-3 border-t flex items-center gap-2 flex-wrap">
                 <Link
-                  href={`/u/${user.user_metadata.user_name}`}
+                  href={`/u/${username}`}
                   target="_blank"
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
-                  /u/{user.user_metadata.user_name}
+                  /u/{username}
                 </Link>
-                <CopyPortfolioButton username={user.user_metadata.user_name as string} />
+                <CopyPortfolioButton username={username} />
               </div>
             )}
           </div>
@@ -171,35 +187,21 @@ export default function DashboardPage() {
   );
 }
 
-function DashCard({
-  title,
-  description,
-  href,
-  soon,
-}: {
-  title: string;
-  description: string;
-  href: string;
-  soon: boolean;
-}) {
+type DashCardProps = { icon: React.ReactNode; title: string; description: string; href: string };
+
+function DashCard({ icon, title, description, href }: DashCardProps) {
   return (
     <a
-      href={soon ? undefined : href}
-      className={`block rounded-lg border bg-card p-5 space-y-2 transition-colors ${
-        soon
-          ? "opacity-50 cursor-not-allowed"
-          : "hover:border-foreground/30 hover:bg-accent/30"
-      }`}
+      href={href}
+      className="group flex flex-col gap-3 rounded-xl border bg-card p-5 hover:border-primary/40 hover:shadow-md transition-all duration-200"
     >
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-sm">{title}</h3>
-        {soon && (
-          <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
-            Em breve
-          </span>
-        )}
+      <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/15 transition-colors">
+        {icon}
       </div>
-      <p className="text-sm text-muted-foreground">{description}</p>
+      <div>
+        <h3 className="font-semibold text-sm group-hover:text-primary transition-colors">{title}</h3>
+        <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{description}</p>
+      </div>
     </a>
   );
 }
@@ -218,18 +220,16 @@ function CopyPortfolioButton({ username }: { username: string }) {
   return (
     <button
       onClick={copy}
-      className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border hover:border-foreground/40 transition-colors"
+      className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border transition-all ${
+        copied
+          ? "border-green-500/50 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20"
+          : "hover:border-foreground/40 hover:bg-accent/50"
+      }`}
     >
       {copied ? (
-        <>
-          <Check className="h-3.5 w-3.5 text-green-500" />
-          <span className="text-green-600">Copiado!</span>
-        </>
+        <><Check className="h-3.5 w-3.5" />Copiado!</>
       ) : (
-        <>
-          <Copy className="h-3.5 w-3.5" />
-          Compartilhar portfólio
-        </>
+        <><Copy className="h-3.5 w-3.5" />Compartilhar portfólio</>
       )}
     </button>
   );
