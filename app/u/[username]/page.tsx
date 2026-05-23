@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, MapPin, ExternalLink, Star, ChevronRight } from "lucide-react";
 import { GitHubIcon } from "@/components/icons/github";
 import { PortfolioNav } from "./PortfolioNav";
+import { SkillsSection } from "./SkillsSection";
 
 type Skill = { name: string; count: number };
 type Post = { id: string; repo_name: string; tone: string; content: string; created_at: string };
@@ -30,6 +31,8 @@ type Profile = {
   instagram_url: string | null;
   location: string | null;
   skills: Skill[];
+  custom_skills: string[] | null;
+  hidden_skills: string[] | null;
   featured_repos: FeaturedRepo[];
 };
 type TimelineItem = {
@@ -121,13 +124,16 @@ export default async function PublicProfilePage({
   if (!data) notFound();
   const { profile, posts, timeline } = data;
   const displayName = profile.full_name ?? profile.username;
-  const topSkills = (profile.skills ?? []).slice(0, 12);
-  const maxCount = topSkills[0]?.count ?? 1;
+  const hiddenSet = new Set(profile.hidden_skills ?? []);
+  const visibleSkills = (profile.skills ?? []).filter((s) => !hiddenSet.has(s.name));
+  const customSkills = profile.custom_skills ?? [];
+
+  const hasSkills = visibleSkills.length > 0 || customSkills.length > 0;
 
   const navItems = [
     { href: "#inicio", label: "Início" },
     ...(profile.bio_long ? [{ href: "#sobre", label: "Sobre" }] : []),
-    ...(topSkills.length > 0 ? [{ href: "#habilidades", label: "Habilidades" }] : []),
+    ...(hasSkills ? [{ href: "#habilidades", label: "Habilidades" }] : []),
     ...(profile.featured_repos?.length > 0 ? [{ href: "#projetos", label: "Projetos" }] : []),
     ...(timeline.length > 0 ? [{ href: "#experiencia", label: "Experiência" }] : []),
     ...(posts.length > 0 ? [{ href: "#posts", label: "Posts" }] : []),
@@ -237,10 +243,10 @@ export default async function PublicProfilePage({
               </div>
 
               {/* Stats */}
-              {(topSkills.length > 0 || timeline.length > 0 || posts.length > 0) && (
+              {(hasSkills || timeline.length > 0 || posts.length > 0) && (
                 <div className="flex items-center justify-center sm:justify-start gap-8 pt-1 border-t border-white/10">
-                  {topSkills.length > 0 && (
-                    <HeroStat value={topSkills.length} label="tecnologias" />
+                  {hasSkills && (
+                    <HeroStat value={visibleSkills.length + customSkills.length} label="tecnologias" />
                   )}
                   {profile.featured_repos?.length > 0 && (
                     <HeroStat value={profile.featured_repos.length} label="projetos" />
@@ -275,18 +281,18 @@ export default async function PublicProfilePage({
       )}
 
       {/* ── HABILIDADES ── */}
-      {topSkills.length > 0 && (
+      {hasSkills && (
         <section id="habilidades" className="py-16 sm:py-24 bg-muted/40">
           <div className="max-w-4xl mx-auto px-6">
             <SectionHeader label="Stack Técnica" title="Habilidades" />
-            <p className="mt-2 text-sm text-muted-foreground">
-              Inferidas automaticamente a partir dos repositórios públicos no GitHub.
+            <p className="mt-2 mb-8 text-sm text-muted-foreground">
+              Clique em uma tecnologia para ver os repositórios relacionados.
             </p>
-            <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {topSkills.map((skill) => (
-                <SkillCard key={skill.name} skill={skill} max={maxCount} />
-              ))}
-            </div>
+            <SkillsSection
+              skills={visibleSkills}
+              customSkills={customSkills}
+              username={profile.username}
+            />
           </div>
         </section>
       )}
@@ -447,23 +453,6 @@ function SectionHeader({ label, title }: { label: string; title: string }) {
   );
 }
 
-function SkillCard({ skill, max }: { skill: Skill; max: number }) {
-  const pct = Math.max(12, Math.round((skill.count / max) * 100));
-  return (
-    <div className="rounded-xl border bg-background p-4 space-y-3 hover:border-foreground/20 transition-colors">
-      <div className="flex items-center justify-between gap-2">
-        <p className="font-semibold text-sm truncate">{skill.name}</p>
-        <span className="text-xs text-muted-foreground shrink-0">{skill.count}</span>
-      </div>
-      <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-        <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
-      </div>
-      <p className="text-xs text-muted-foreground">
-        {skill.count} {skill.count === 1 ? "repositório" : "repositórios"}
-      </p>
-    </div>
-  );
-}
 
 function RepoCard({ repo }: { repo: FeaturedRepo }) {
   const langColor = LANG_COLORS[repo.language ?? ""] ?? "bg-slate-400";

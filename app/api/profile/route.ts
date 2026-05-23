@@ -13,7 +13,12 @@ const ProfileUpdateSchema = z.object({
   location: z.string().max(100).nullable().optional(),
   whatsapp: z.string().max(20).nullable().optional(),
   instagram_url: z.string().nullable().optional(),
+  custom_skills: z.array(z.string().max(50)).max(100).optional(),
+  hidden_skills: z.array(z.string().max(50)).max(100).optional(),
 });
+
+const SELECT_FIELDS =
+  "bio_long, role_title, linkedin_url, location, whatsapp, instagram_url, custom_skills, hidden_skills, skills";
 
 export async function GET(req: Request) {
   const jwt = extractJwt(req);
@@ -25,7 +30,7 @@ export async function GET(req: Request) {
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("bio_long, role_title, linkedin_url, location, whatsapp, instagram_url")
+    .select(SELECT_FIELDS)
     .eq("user_id", user.id)
     .single();
 
@@ -47,13 +52,15 @@ export async function PATCH(req: Request) {
     return Response.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const updates: Record<string, string | null> = {};
+  const updates: Record<string, unknown> = {};
   if ("bio_long" in parsed.data) updates.bio_long = parsed.data.bio_long ?? null;
   if ("role_title" in parsed.data) updates.role_title = parsed.data.role_title ?? null;
   if ("linkedin_url" in parsed.data) updates.linkedin_url = parsed.data.linkedin_url || null;
   if ("location" in parsed.data) updates.location = parsed.data.location ?? null;
   if ("whatsapp" in parsed.data) updates.whatsapp = parsed.data.whatsapp || null;
   if ("instagram_url" in parsed.data) updates.instagram_url = parsed.data.instagram_url || null;
+  if ("custom_skills" in parsed.data) updates.custom_skills = parsed.data.custom_skills ?? [];
+  if ("hidden_skills" in parsed.data) updates.hidden_skills = parsed.data.hidden_skills ?? [];
 
   const { error } = await supabase
     .from("profiles")
