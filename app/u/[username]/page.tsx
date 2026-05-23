@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, MapPin, ExternalLink, Star, ChevronRight, ArrowRight } from "lucide-react";
 import { GitHubIcon } from "@/components/icons/github";
@@ -114,6 +115,49 @@ async function fetchPublicProfile(username: string) {
     profile: profile as Profile,
     posts: (postsResult.data ?? []) as Post[],
     timeline: (timelineResult.data ?? []) as TimelineItem[],
+  };
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ username: string }>;
+}): Promise<Metadata> {
+  const { username } = await params;
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+  const { data } = await supabase
+    .from("profiles")
+    .select("full_name, bio, role_title, avatar_url")
+    .eq("username", username)
+    .single();
+
+  if (!data) return { title: "Portfólio não encontrado" };
+
+  const displayName = data.full_name ?? username;
+  const title = data.role_title
+    ? `${displayName} — ${data.role_title}`
+    : `${displayName} — Portfólio`;
+  const description =
+    data.bio ?? `Portfólio profissional de ${displayName} com skills verificadas por código real.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: data.avatar_url ? [{ url: data.avatar_url, width: 400, height: 400 }] : [],
+      type: "profile",
+    },
+    twitter: {
+      card: "summary",
+      title,
+      description,
+      images: data.avatar_url ? [data.avatar_url] : [],
+    },
   };
 }
 

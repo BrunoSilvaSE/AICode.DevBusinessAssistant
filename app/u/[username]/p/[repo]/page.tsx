@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { ArrowLeft, ExternalLink, Star, GitBranch } from "lucide-react";
 import { MermaidDiagram } from "@/components/MermaidDiagram";
 import { CopyLinkedInButton } from "@/components/CopyLinkedInButton";
@@ -69,6 +70,38 @@ const LANG_COLORS: Record<string, string> = {
   Java: "bg-orange-500", "C#": "bg-purple-500", Go: "bg-cyan-500",
   Rust: "bg-orange-700", Ruby: "bg-red-500", PHP: "bg-indigo-500",
 };
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ username: string; repo: string }>;
+}): Promise<Metadata> {
+  const { username, repo: repoName } = await params;
+  const data = await fetchProjectData(username, repoName);
+  if (!data) return { title: "Projeto não encontrado" };
+
+  const { profile, repo } = data;
+  const displayName = profile.full_name ?? profile.username;
+  const title = `${repo.name} — ${displayName}`;
+  const description = repo.description ?? `Projeto de ${displayName} no Dev Business Assistant.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: repo.cover_url ? [{ url: repo.cover_url }] : [],
+      type: "article",
+    },
+    twitter: {
+      card: repo.cover_url ? "summary_large_image" : "summary",
+      title,
+      description,
+      images: repo.cover_url ? [repo.cover_url] : [],
+    },
+  };
+}
 
 export default async function ProjectPage({
   params,
