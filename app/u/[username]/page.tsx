@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, ExternalLink, Star, ChevronRight, ArrowRight } from "lucide-react";
+import { Calendar, MapPin, ExternalLink, Star, ChevronRight, ArrowRight, Heart, MessageSquare } from "lucide-react";
 import { GitHubIcon } from "@/components/icons/github";
 import { PortfolioNav } from "./PortfolioNav";
 import { SkillsSection } from "./SkillsSection";
@@ -13,6 +13,15 @@ import { CopyLinkedInButton } from "@/components/CopyLinkedInButton";
 
 type Skill = { name: string; count: number; first_year?: number };
 type Post = { id: string; repo_name: string; tone: string; content: string; created_at: string };
+type CommunityPost = {
+  id: string;
+  title: string | null;
+  content: string;
+  tone: string | null;
+  likes_count: number;
+  comments_count: number;
+  created_at: string;
+};
 type FeaturedRepo = {
   name: string;
   full_name: string;
@@ -117,7 +126,7 @@ async function fetchPublicProfile(username: string) {
 
   if (error || !profile) return null;
 
-  const [postsResult, timelineResult, githubStats] = await Promise.all([
+  const [postsResult, timelineResult, githubStats, communityResult] = await Promise.all([
     supabase
       .from("posts")
       .select("id, repo_name, tone, content, created_at")
@@ -130,6 +139,12 @@ async function fetchPublicProfile(username: string) {
       .eq("user_id", (profile as Profile).user_id)
       .order("start_date", { ascending: false }),
     fetchGitHubStats(username),
+    supabase
+      .from("community_posts")
+      .select("id, title, content, tone, likes_count, comments_count, created_at")
+      .eq("username", username)
+      .order("likes_count", { ascending: false })
+      .limit(4),
   ]);
 
   return {
@@ -137,6 +152,7 @@ async function fetchPublicProfile(username: string) {
     posts: (postsResult.data ?? []) as Post[],
     timeline: (timelineResult.data ?? []) as TimelineItem[],
     githubStats,
+    communityPosts: (communityResult.data ?? []) as CommunityPost[],
   };
 }
 
@@ -192,7 +208,7 @@ export default async function PublicProfilePage({
   const data = await fetchPublicProfile(username);
 
   if (!data) notFound();
-  const { profile, posts, timeline, githubStats } = data;
+  const { profile, posts, timeline, githubStats, communityPosts } = data;
   const displayName = profile.full_name ?? profile.username;
   const hiddenSet = new Set(profile.hidden_skills ?? []);
   const visibleSkills = (profile.skills ?? []).filter((s) => !hiddenSet.has(s.name));
@@ -206,6 +222,7 @@ export default async function PublicProfilePage({
     ...(hasSkills ? [{ href: "#habilidades", label: "Habilidades" }] : []),
     ...(profile.featured_repos?.length > 0 ? [{ href: "#projetos", label: "Projetos" }] : []),
     ...(timeline.length > 0 ? [{ href: "#experiencia", label: "Experiência" }] : []),
+    ...(communityPosts.length > 0 ? [{ href: "#comunidade", label: "Comunidade" }] : []),
     ...(posts.length > 0 ? [{ href: "#posts", label: "Posts" }] : []),
     { href: "#contato", label: "Contato" },
   ];
@@ -326,6 +343,9 @@ export default async function PublicProfilePage({
                 {profile.featured_repos?.length > 0 && (
                   <HeroStat value={profile.featured_repos.length} label="projetos" />
                 )}
+                {communityPosts.length > 0 && (
+                  <HeroStat value={communityPosts.length} label="posts" />
+                )}
               </div>
             </div>
           </div>
@@ -409,6 +429,31 @@ export default async function PublicProfilePage({
                 <ChevronRight className="h-4 w-4" />
               </Link>
             )}
+          </div>
+        </section>
+      )}
+
+      {/* ── COMUNIDADE ── */}
+      {communityPosts.length > 0 && (
+        <section id="comunidade" className="py-16 sm:py-24">
+          <div className="max-w-4xl mx-auto px-6">
+            <div className="flex items-end justify-between">
+              <SectionHeader label="Comunidade" title="Posts na Comunidade" />
+              <Link
+                href="/comunidade"
+                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-1"
+              >
+                Ver feed <ChevronRight className="h-4 w-4" />
+              </Link>
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Posts mais populares publicados na comunidade de devs.
+            </p>
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {communityPosts.map((post) => (
+                <CommunityPostCard key={post.id} post={post} />
+              ))}
+            </div>
           </div>
         </section>
       )}
@@ -673,6 +718,34 @@ function PostCard({ post }: { post: Post }) {
         <CopyLinkedInButton text={post.content} />
       </div>
     </div>
+  );
+}
+
+function CommunityPostCard({ post }: { post: CommunityPost }) {
+  const TONE_LABELS: Record<string, string> = { business: "Negócio", technical: "Técnico", free: "Livre" };
+  const isLong = post.content.length > 200;
+  const display = isLong ? post.content.slice(0, 200) + "…" : post.content;
+  return (
+    <Link
+      href={`/comunidade/${post.id}`}
+      className="group flex flex-col rounded-xl border bg-card p-5 space-y-3 hover:border-foreground/30 hover:shadow-sm transition-all"
+    >
+      {post.title && (
+        <h3 className="font-semibold text-sm leading-snug group-hover:underline">{post.title}</h3>
+      )}
+      <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap flex-1">{display}</p>
+      <div className="flex items-center gap-3 pt-1 border-t">
+        {post.tone && post.tone !== "free" && (
+          <Badge variant="outline" className="text-[10px]">{TONE_LABELS[post.tone]}</Badge>
+        )}
+        <span className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">
+          <Heart className="h-3 w-3" /> {post.likes_count}
+        </span>
+        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+          <MessageSquare className="h-3 w-3" /> {post.comments_count}
+        </span>
+      </div>
+    </Link>
   );
 }
 

@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createBrowserClient } from "@/lib/supabase/client";
-import { ArrowLeft, Heart, MessageSquare, PenSquare, Loader2, Users } from "lucide-react";
+import { ArrowLeft, Heart, MessageSquare, PenSquare, Loader2, Users, TrendingUp, Clock, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -17,8 +17,12 @@ type CommunityPost = {
   repo_name: string | null;
   tone: "business" | "technical" | "free" | null;
   likes_count: number;
+  comments_count: number;
   created_at: string;
 };
+
+type Sort = "recent" | "popular";
+type ToneFilter = "" | "business" | "technical" | "free";
 
 const TONE_LABELS: Record<string, string> = {
   business: "Negócio",
@@ -40,10 +44,9 @@ function relativeDate(iso: string): string {
 
 function Avatar({ url, name, size = 9 }: { url: string | null; name: string | null; size?: number }) {
   const initials = (name ?? "?")[0].toUpperCase();
-  const s = `h-${size} w-${size}`;
-  if (url) return <img src={url} alt={name ?? ""} className={`${s} rounded-full object-cover`} />;
+  if (url) return <img src={url} alt={name ?? ""} className={`h-${size} w-${size} rounded-full object-cover shrink-0`} />;
   return (
-    <div className={`${s} rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0`}>
+    <div className={`h-${size} w-${size} rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0`}>
       {initials}
     </div>
   );
@@ -55,35 +58,41 @@ export default function ComunidadePage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [jwt, setJwt] = useState<string | null>(null);
-  const [myUserId, setMyUserId] = useState<string | null>(null);
   const [liked, setLiked] = useState<Set<string>>(new Set());
   const [liking, setLiking] = useState<Set<string>>(new Set());
+  const [sort, setSort] = useState<Sort>("recent");
+  const [toneFilter, setToneFilter] = useState<ToneFilter>("");
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    createBrowserClient()
-      .auth.getSession()
-      .then(({ data }) => {
-        if (data.session) {
-          setJwt(data.session.access_token);
-          setMyUserId(data.session.user.id);
-        }
-      });
+    createBrowserClient().auth.getSession().then(({ data }) => {
+      if (data.session) setJwt(data.session.access_token);
+    });
   }, []);
 
-  async function loadPosts(cursor?: string) {
-    const url = cursor ? `/api/community?cursor=${encodeURIComponent(cursor)}` : "/api/community";
-    const res = await fetch(url);
+  const buildUrl = useCallback((cursor?: string) => {
+    const params = new URLSearchParams();
+    if (cursor) params.set("cursor", cursor);
+    if (sort !== "recent") params.set("sort", sort);
+    if (toneFilter) params.set("tone", toneFilter);
+    return `/api/community?${params.toString()}`;
+  }, [sort, toneFilter]);
+
+  const loadPosts = useCallback(async (cursor?: string) => {
+    const res = await fetch(buildUrl(cursor));
     if (!res.ok) return;
     const { posts: newPosts, nextCursor: nc } = await res.json();
     setPosts((prev) => cursor ? [...prev, ...newPosts] : newPosts);
     setNextCursor(nc);
-  }
+  }, [buildUrl]);
 
+  // Re-fetch when filters change
   useEffect(() => {
     setLoading(true);
+    setPosts([]);
+    setNextCursor(null);
     loadPosts().finally(() => setLoading(false));
-  }, []);
+  }, [loadPosts]);
 
   // Infinite scroll
   useEffect(() => {
@@ -99,39 +108,21 @@ export default function ComunidadePage() {
     );
     observer.observe(sentinelRef.current);
     return () => observer.disconnect();
-  }, [nextCursor, loadingMore]);
+  }, [nextCursor, loadingMore, loadPosts]);
 
   async function toggleLike(postId: string) {
     if (!jwt || liking.has(postId)) return;
     setLiking((s) => new Set([...s, postId]));
-
     const isLiked = liked.has(postId);
-    const method = isLiked ? "DELETE" : "POST";
-
     const res = await fetch(`/api/community/${postId}/like`, {
-      method,
+      method: isLiked ? "DELETE" : "POST",
       headers: { Authorization: `Bearer ${jwt}` },
     });
-
     if (res.ok) {
-      setLiked((s) => {
-        const next = new Set(s);
-        isLiked ? next.delete(postId) : next.add(postId);
-        return next;
-      });
-      setPosts((prev) =>
-        prev.map((p) =>
-          p.id === postId
-            ? { ...p, likes_count: p.likes_count + (isLiked ? -1 : 1) }
-            : p
-        )
-      );
+      setLiked((s) => { const n = new Set(s); isLiked ? n.delete(postId) : n.add(postId); return n; });
+      setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, likes_count: p.likes_count + (isLiked ? -1 : 1) } : p));
     }
-    setLiking((s) => {
-      const next = new Set(s);
-      next.delete(postId);
-      return next;
-    });
+    setLiking((s) => { const n = new Set(s); n.delete(postId); return n; });
   }
 
   return (
@@ -140,10 +131,7 @@ export default function ComunidadePage() {
         <div className="max-w-2xl mx-auto px-4 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button asChild variant="ghost" size="sm">
-              <Link href="/dashboard">
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                Dashboard
-              </Link>
+              <Link href="/dashboard"><ArrowLeft className="h-4 w-4 mr-1" />Dashboard</Link>
             </Button>
             <div className="flex items-center gap-1.5">
               <Users className="h-4 w-4 text-primary" />
@@ -152,16 +140,58 @@ export default function ComunidadePage() {
           </div>
           {jwt && (
             <Button asChild size="sm">
-              <Link href="/comunidade/novo">
-                <PenSquare className="h-3.5 w-3.5 mr-1.5" />
-                Publicar
-              </Link>
+              <Link href="/comunidade/novo"><PenSquare className="h-3.5 w-3.5 mr-1.5" />Publicar</Link>
             </Button>
           )}
         </div>
       </header>
 
-      <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-6 space-y-3">
+      {/* Filter bar */}
+      <div className="border-b bg-background/95 backdrop-blur sticky top-[57px] z-30">
+        <div className="max-w-2xl mx-auto px-4 py-2 flex items-center gap-3 overflow-x-auto scrollbar-none">
+          {/* Sort tabs */}
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={() => setSort("recent")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                sort === "recent" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground hover:bg-accent"
+              }`}
+            >
+              <Clock className="h-3 w-3" /> Recentes
+            </button>
+            <button
+              onClick={() => setSort("popular")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                sort === "popular" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground hover:bg-accent"
+              }`}
+            >
+              <TrendingUp className="h-3 w-3" /> Populares
+            </button>
+          </div>
+
+          <div className="h-4 w-px bg-border shrink-0" />
+
+          {/* Tone filter pills */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Filter className="h-3 w-3 text-muted-foreground shrink-0" />
+            {(["", "business", "technical", "free"] as ToneFilter[]).map((t) => (
+              <button
+                key={t}
+                onClick={() => setToneFilter(t)}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors shrink-0 ${
+                  toneFilter === t
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {t === "" ? "Todos" : TONE_LABELS[t]}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-5 space-y-3">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -169,12 +199,10 @@ export default function ComunidadePage() {
         ) : posts.length === 0 ? (
           <div className="text-center py-20 space-y-3">
             <MessageSquare className="h-10 w-10 text-muted-foreground mx-auto" />
-            <p className="text-sm text-muted-foreground">Nenhum post ainda. Seja o primeiro!</p>
-            {jwt && (
-              <Button asChild size="sm">
-                <Link href="/comunidade/novo">Publicar algo</Link>
-              </Button>
-            )}
+            <p className="text-sm text-muted-foreground">
+              {toneFilter ? `Nenhum post do tipo "${TONE_LABELS[toneFilter]}" ainda.` : "Nenhum post ainda. Seja o primeiro!"}
+            </p>
+            {jwt && <Button asChild size="sm"><Link href="/comunidade/novo">Publicar algo</Link></Button>}
           </div>
         ) : (
           posts.map((post) => (
@@ -189,7 +217,6 @@ export default function ComunidadePage() {
           ))
         )}
 
-        {/* Infinite scroll sentinel */}
         <div ref={sentinelRef} className="h-4" />
         {loadingMore && (
           <div className="flex justify-center py-4">
@@ -197,14 +224,10 @@ export default function ComunidadePage() {
           </div>
         )}
 
-        {!jwt && !loading && (
+        {!jwt && !loading && posts.length > 0 && (
           <div className="rounded-xl border bg-card/50 p-5 text-center space-y-2 mt-4">
-            <p className="text-sm text-muted-foreground">
-              Faça login para curtir e publicar posts.
-            </p>
-            <Button asChild size="sm" variant="outline">
-              <Link href="/login">Entrar com GitHub</Link>
-            </Button>
+            <p className="text-sm text-muted-foreground">Faça login para curtir e publicar posts.</p>
+            <Button asChild size="sm" variant="outline"><Link href="/login">Entrar com GitHub</Link></Button>
           </div>
         )}
       </main>
@@ -213,11 +236,7 @@ export default function ComunidadePage() {
 }
 
 function PostCard({
-  post,
-  isLiked,
-  isLiking,
-  canLike,
-  onLike,
+  post, isLiked, isLiking, canLike, onLike,
 }: {
   post: CommunityPost;
   isLiked: boolean;
@@ -231,7 +250,6 @@ function PostCard({
 
   return (
     <article className="rounded-xl border bg-card p-5 space-y-3 hover:border-foreground/20 transition-colors">
-      {/* Author row */}
       <div className="flex items-center gap-2.5">
         <Link href={`/u/${post.username}`}>
           <Avatar url={post.avatar_url} name={post.full_name ?? post.username} />
@@ -251,42 +269,31 @@ function PostCard({
           <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
             <span>{relativeDate(post.created_at)}</span>
             {post.repo_name && (
-              <>
-                <span>·</span>
-                <span className="font-mono">{post.repo_name}</span>
-              </>
+              <><span>·</span><span className="font-mono truncate max-w-[120px]">{post.repo_name}</span></>
             )}
           </div>
         </div>
       </div>
 
-      {/* Content */}
-      {post.title && (
-        <h3 className="font-semibold text-sm leading-snug">{post.title}</h3>
-      )}
+      {post.title && <h3 className="font-semibold text-sm leading-snug">{post.title}</h3>}
+
       <Link href={`/comunidade/${post.id}`} className="block">
         <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground hover:text-foreground transition-colors">
           {displayContent}
         </p>
       </Link>
       {isLong && (
-        <button
-          onClick={() => setExpanded((e) => !e)}
-          className="text-xs text-primary hover:underline"
-        >
+        <button onClick={() => setExpanded((e) => !e)} className="text-xs text-primary hover:underline">
           {expanded ? "Ver menos" : "Ver mais"}
         </button>
       )}
 
-      {/* Actions */}
       <div className="flex items-center gap-4 pt-1">
         <button
           onClick={onLike}
           disabled={!canLike || isLiking}
           className={`flex items-center gap-1.5 text-xs transition-colors ${
-            isLiked
-              ? "text-rose-500 dark:text-rose-400"
-              : "text-muted-foreground hover:text-rose-500 dark:hover:text-rose-400"
+            isLiked ? "text-rose-500 dark:text-rose-400" : "text-muted-foreground hover:text-rose-500 dark:hover:text-rose-400"
           } disabled:opacity-50`}
         >
           <Heart className={`h-3.5 w-3.5 ${isLiked ? "fill-current" : ""}`} />
@@ -298,7 +305,7 @@ function PostCard({
           className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           <MessageSquare className="h-3.5 w-3.5" />
-          Ver post
+          <span>{post.comments_count > 0 ? post.comments_count : ""} {post.comments_count === 1 ? "comentário" : post.comments_count > 1 ? "comentários" : "Comentar"}</span>
         </Link>
       </div>
     </article>

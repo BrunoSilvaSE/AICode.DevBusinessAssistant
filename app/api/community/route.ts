@@ -17,6 +17,8 @@ const CreatePostSchema = z.object({
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const cursor = searchParams.get("cursor");
+  const tone = searchParams.get("tone"); // "business" | "technical" | "free" | null
+  const sort = searchParams.get("sort") ?? "recent"; // "recent" | "popular"
   const limit = 20;
 
   const supabase = createClient(
@@ -26,12 +28,23 @@ export async function GET(req: Request) {
 
   let query = supabase
     .from("community_posts")
-    .select("id, username, full_name, avatar_url, title, content, repo_name, tone, likes_count, created_at")
-    .order("created_at", { ascending: false })
+    .select("id, username, full_name, avatar_url, title, content, repo_name, tone, likes_count, comments_count, created_at")
     .limit(limit + 1);
 
-  if (cursor) {
-    query = query.lt("created_at", cursor);
+  if (tone) query = query.eq("tone", tone);
+
+  if (sort === "popular") {
+    query = query.order("likes_count", { ascending: false }).order("created_at", { ascending: false });
+    if (cursor) {
+      // cursor is "likes_count:created_at" for keyset pagination on popular
+      const [likesStr, ts] = cursor.split("|");
+      const likes = parseInt(likesStr, 10);
+      // Approximate: skip posts with more likes or same likes but older
+      query = query.or(`likes_count.lt.${likes},and(likes_count.eq.${likes},created_at.lt.${ts})`);
+    }
+  } else {
+    query = query.order("created_at", { ascending: false });
+    if (cursor) query = query.lt("created_at", cursor);
   }
 
   const { data, error } = await query;
@@ -39,7 +52,14 @@ export async function GET(req: Request) {
 
   const hasMore = data.length > limit;
   const posts = hasMore ? data.slice(0, limit) : data;
-  const nextCursor = hasMore ? posts[posts.length - 1].created_at : null;
+
+  let nextCursor: string | null = null;
+  if (hasMore) {
+    const last = posts[posts.length - 1];
+    nextCursor = sort === "popular"
+      ? `${last.likes_count}|${last.created_at}`
+      : last.created_at;
+  }
 
   return Response.json({ posts, nextCursor });
 }
