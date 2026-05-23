@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, ExternalLink, Star, ChevronRight } from "lucide-react";
+import { Calendar, MapPin, ExternalLink, Star, ChevronRight, ArrowRight } from "lucide-react";
 import { GitHubIcon } from "@/components/icons/github";
 import { PortfolioNav } from "./PortfolioNav";
 import { SkillsSection } from "./SkillsSection";
@@ -308,7 +308,7 @@ export default async function PublicProfilePage({
             <SectionHeader label="GitHub" title="Projetos em Destaque" />
             <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {profile.featured_repos.map((repo) => (
-                <RepoCard key={repo.full_name} repo={repo} />
+                <RepoCard key={repo.full_name} repo={repo} username={username} />
               ))}
             </div>
           </div>
@@ -469,14 +469,12 @@ function SectionHeader({ label, title }: { label: string; title: string }) {
 }
 
 
-function RepoCard({ repo }: { repo: FeaturedRepo }) {
+function RepoCard({ repo, username }: { repo: FeaturedRepo; username: string }) {
   const langColor = LANG_COLORS[repo.language ?? ""] ?? "bg-slate-400";
   return (
     <div className="flex flex-col gap-3">
-      <a
-        href={repo.html_url}
-        target="_blank"
-        rel="noopener noreferrer"
+      <Link
+        href={`/u/${username}/p/${repo.name}`}
         className="group flex flex-col rounded-xl border bg-card overflow-hidden hover:border-foreground/30 hover:shadow-md transition-all"
       >
         {/* Cover image */}
@@ -499,7 +497,7 @@ function RepoCard({ repo }: { repo: FeaturedRepo }) {
             <span className="font-semibold text-sm leading-tight group-hover:underline">
               {repo.name}
             </span>
-            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
           {repo.description && (
             <p className="text-xs text-muted-foreground line-clamp-2 flex-1">{repo.description}</p>
@@ -519,7 +517,7 @@ function RepoCard({ repo }: { repo: FeaturedRepo }) {
             )}
           </div>
         </div>
-      </a>
+      </Link>
       {repo.diagram_mermaid && (
         <div className="space-y-1.5">
           <p className="text-xs font-medium text-muted-foreground px-1">Arquitetura</p>
