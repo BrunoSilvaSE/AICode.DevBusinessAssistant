@@ -6,13 +6,15 @@ import { createBrowserClient } from "@/lib/supabase/client";
 import { calculateSkills } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, RefreshCw, Calendar, MessageSquare, AlertCircle } from "lucide-react";
+import { ArrowLeft, RefreshCw, Calendar, MessageSquare, AlertCircle, TrendingUp, Loader2 } from "lucide-react";
 import { GitHubIcon } from "@/components/icons/github";
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 
 type Post = { id: string; repo_name: string; tone: string; content: string; created_at: string };
 type Skill = { name: string; count: number };
+type GithubRepo = { language: string | null; pushed_at: string; name: string };
+type YearSkills = { year: number; skills: { name: string; count: number }[] };
 
 export default function PerfilPage() {
   const router = useRouter();
@@ -21,6 +23,10 @@ export default function PerfilPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [skillsSource, setSkillsSource] = useState<"db" | "github" | "empty">("empty");
+  const [activeTab, setActiveTab] = useState<"tree" | "evolution">("tree");
+  const [evolution, setEvolution] = useState<YearSkills[]>([]);
+  const [evolutionLoading, setEvolutionLoading] = useState(false);
+  const [providerToken, setProviderToken] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = createBrowserClient();
@@ -32,6 +38,7 @@ export default function PerfilPage() {
       }
 
       setUser(session.user as User);
+      setProviderToken(session.provider_token ?? null);
       const jwt = session.access_token;
 
       // Fetch posts and DB profile in parallel
@@ -74,6 +81,37 @@ export default function PerfilPage() {
       setLoading(false);
     });
   }, [router]);
+
+  async function loadEvolution() {
+    if (evolution.length > 0 || !providerToken) return;
+    setEvolutionLoading(true);
+    try {
+      const res = await fetch("/api/repos", {
+        headers: { "X-GitHub-Token": providerToken },
+      });
+      if (!res.ok) return;
+      const repos: GithubRepo[] = await res.json();
+      const byYear: Record<number, Record<string, number>> = {};
+      repos.forEach((repo) => {
+        if (!repo.language || !repo.pushed_at) return;
+        const year = new Date(repo.pushed_at).getFullYear();
+        if (!byYear[year]) byYear[year] = {};
+        byYear[year][repo.language] = (byYear[year][repo.language] ?? 0) + 1;
+      });
+      const result = Object.entries(byYear)
+        .sort(([a], [b]) => Number(b) - Number(a))
+        .map(([year, counts]) => ({
+          year: Number(year),
+          skills: Object.entries(counts)
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5),
+        }));
+      setEvolution(result);
+    } finally {
+      setEvolutionLoading(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -137,50 +175,133 @@ export default function PerfilPage() {
           </div>
         </div>
 
-        {/* Skill Tree */}
+        {/* Skill Tree + Evolução */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold tracking-tight">Skill Tree (GitHub Verified)</h2>
+            <h2 className="text-xl font-semibold tracking-tight">Skills</h2>
             {skillsSource === "db" && (
-              <span className="text-xs text-muted-foreground">Sincronizado do GitHub</span>
+              <span className="text-xs text-muted-foreground">GitHub Verified</span>
             )}
           </div>
 
-          {skills.length === 0 ? (
-            <div className="rounded-lg border border-dashed p-8 text-center space-y-3">
-              <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium">Nenhuma skill encontrada</p>
-                <p className="text-xs text-muted-foreground">
-                  Acesse o Dashboard para sincronizar seus repositórios com o banco de dados.
-                </p>
-              </div>
-              <Button asChild size="sm" variant="outline">
-                <Link href="/dashboard">Ir para o Dashboard</Link>
-              </Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {skills.map((skill) => (
-                <div key={skill.name} className="rounded-lg border bg-card p-4 space-y-3">
+          {/* Tabs */}
+          <div className="flex gap-1 border-b">
+            <button
+              onClick={() => setActiveTab("tree")}
+              className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+                activeTab === "tree"
+                  ? "border-foreground text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Skill Tree
+            </button>
+            <button
+              onClick={() => { setActiveTab("evolution"); loadEvolution(); }}
+              className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+                activeTab === "evolution"
+                  ? "border-foreground text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <TrendingUp className="h-3.5 w-3.5" />
+              Evolução
+            </button>
+          </div>
+
+          {/* Skill Tree tab */}
+          {activeTab === "tree" && (
+            <>
+              {skills.length === 0 ? (
+                <div className="rounded-lg border border-dashed p-8 text-center space-y-3">
+                  <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto" />
                   <div className="space-y-1">
-                    <p className="text-sm font-medium">{skill.name}</p>
-                    <p className="text-xs text-muted-foreground">{skill.count} repos</p>
+                    <p className="text-sm font-medium">Nenhuma skill encontrada</p>
+                    <p className="text-xs text-muted-foreground">
+                      Acesse o Dashboard para sincronizar seus repositórios.
+                    </p>
                   </div>
-                  <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary"
-                      style={{ width: `${Math.min(100, (skill.count / skills[0].count) * 100)}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-end">
-                    <Badge variant="secondary" className="text-[9px] h-4 uppercase tracking-tighter">
-                      Verified
-                    </Badge>
-                  </div>
+                  <Button asChild size="sm" variant="outline">
+                    <Link href="/dashboard">Ir para o Dashboard</Link>
+                  </Button>
                 </div>
-              ))}
-            </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {skills.map((skill) => (
+                    <div key={skill.name} className="rounded-lg border bg-card p-4 space-y-3">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">{skill.name}</p>
+                        <p className="text-xs text-muted-foreground">{skill.count} repos</p>
+                      </div>
+                      <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary"
+                          style={{ width: `${Math.min(100, (skill.count / skills[0].count) * 100)}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-end">
+                        <Badge variant="secondary" className="text-[9px] h-4 uppercase tracking-tighter">
+                          Verified
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Evolution tab */}
+          {activeTab === "evolution" && (
+            <>
+              {evolutionLoading && (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              )}
+              {!evolutionLoading && evolution.length === 0 && (
+                <div className="rounded-lg border border-dashed p-8 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    {providerToken ? "Nenhum dado de evolução encontrado." : "Faça login novamente para carregar a evolução."}
+                  </p>
+                </div>
+              )}
+              {!evolutionLoading && evolution.length > 0 && (
+                <div className="space-y-6">
+                  <p className="text-xs text-muted-foreground">
+                    Linguagens mais ativas por ano, baseado nos pushes dos seus repositórios públicos.
+                  </p>
+                  {evolution.map(({ year, skills: yearSkills }) => {
+                    const max = yearSkills[0]?.count ?? 1;
+                    return (
+                      <div key={year} className="space-y-2">
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-semibold w-12 shrink-0">{year}</span>
+                          <div className="flex-1 h-px bg-border" />
+                        </div>
+                        <div className="pl-14 space-y-2">
+                          {yearSkills.map((s) => (
+                            <div key={s.name} className="flex items-center gap-3">
+                              <span className="text-xs w-24 shrink-0 text-muted-foreground">{s.name}</span>
+                              <div className="flex-1 h-5 bg-muted rounded overflow-hidden">
+                                <div
+                                  className="h-full bg-primary/70 rounded flex items-center px-2 transition-all duration-500"
+                                  style={{ width: `${Math.max(8, (s.count / max) * 100)}%` }}
+                                >
+                                  <span className="text-[10px] font-medium text-primary-foreground whitespace-nowrap">
+                                    {s.count} repo{s.count > 1 ? "s" : ""}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           )}
         </section>
 
