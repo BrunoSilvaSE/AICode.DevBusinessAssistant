@@ -8,6 +8,7 @@ import type { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { GitHubIcon } from "@/components/icons/github";
 import { DashboardInbox } from "@/components/DashboardInbox";
+import { ProfileAnalysisCard } from "@/components/ProfileAnalysisCard";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -137,6 +138,8 @@ export default function DashboardPage() {
               soon={false}
             />
           </div>
+
+          {jwt && <ProfileAnalysisCard jwt={jwt} />}
 
           <div className="rounded-lg border bg-card p-6">
             <div className="flex items-center gap-3 mb-3">
