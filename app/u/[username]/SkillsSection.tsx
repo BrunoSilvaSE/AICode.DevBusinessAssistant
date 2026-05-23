@@ -65,6 +65,13 @@ const DEVICON: Record<string, [string, string]> = {
   "Objective-C": ["objectivec", "plain"],
 };
 
+const GITHUB_LANGUAGES = new Set([
+  "TypeScript", "JavaScript", "Python", "Java", "C#", "C++", "C", "Go", "Rust",
+  "Ruby", "PHP", "Swift", "Kotlin", "Dart", "HTML", "CSS", "Shell",
+  "Jupyter Notebook", "Vue", "Elixir", "Scala", "R", "Lua", "Haskell",
+  "Sass", "Perl", "Objective-C", "Nim", "Clojure",
+]);
+
 function deviconUrl(name: string): string | null {
   const v = DEVICON[name];
   if (!v) return null;
@@ -129,9 +136,9 @@ export function SkillsSection({
     if (selected === name) { setSelected(null); return; }
     setSelected(name);
 
-    // Custom skills have no GitHub repos to fetch
     const isCustomOnly = customAsSkills.some((s) => s.name === name);
-    if (isCustomOnly || allRepos !== null) return;
+    const isFramework = !GITHUB_LANGUAGES.has(name);
+    if (isCustomOnly || isFramework || allRepos !== null) return;
 
     setLoadingRepos(true);
     const res = await fetch(
@@ -141,8 +148,10 @@ export function SkillsSection({
     setLoadingRepos(false);
   }
 
+  const selectedIsFramework = selected ? !GITHUB_LANGUAGES.has(selected) && !customAsSkills.some((s) => s.name === selected) : false;
+
   const filteredRepos =
-    selected && allRepos
+    selected && allRepos && !selectedIsFramework
       ? allRepos.filter(
           (r) => r.language?.toLowerCase() === selected.toLowerCase()
         )
@@ -218,6 +227,21 @@ export function SkillsSection({
               <p className="text-sm text-muted-foreground text-center py-4">
                 Habilidade adicionada manualmente — sem repositórios vinculados no GitHub.
               </p>
+            ) : selectedIsFramework ? (
+              <div className="text-center py-4 space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Detectado por análise de <code className="text-xs bg-muted px-1.5 py-0.5 rounded">package.json</code> / arquivos de dependências.
+                </p>
+                <a
+                  href={`https://github.com/${username}?tab=repositories`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+                >
+                  Ver repositórios no GitHub
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
             ) : filteredRepos.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {filteredRepos.map((repo) => (
