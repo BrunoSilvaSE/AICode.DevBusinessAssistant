@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createAuthedServerClient } from "@/lib/supabase/client";
 import { calculateSkills } from "@/lib/utils";
+import { detectFrameworks } from "@/lib/frameworks";
 
 const SyncSchema = z.object({
   userId: z.string().min(1),
@@ -37,7 +38,22 @@ export async function POST(req: Request) {
 
   const repos = reposRes.ok ? await reposRes.json() : [];
   const ghUser = ghUserRes.ok ? await ghUserRes.json() : {};
-  const skills = calculateSkills(repos);
+
+  // Language skills from GitHub's primary language field
+  const langSkills = calculateSkills(repos);
+
+  // Framework skills from dependency files (package.json, requirements.txt, etc.)
+  const frameworkCounts = await detectFrameworks(repos, githubToken);
+  const frameworkSkills = Object.entries(frameworkCounts)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count);
+
+  // Merge: frameworks first (more specific), then languages
+  const existingNames = new Set(frameworkSkills.map((s) => s.name));
+  const skills = [
+    ...frameworkSkills,
+    ...langSkills.filter((s) => !existingNames.has(s.name)),
+  ];
 
   const supabase = createAuthedServerClient(jwt);
   const { error } = await supabase.from("profiles").upsert(
