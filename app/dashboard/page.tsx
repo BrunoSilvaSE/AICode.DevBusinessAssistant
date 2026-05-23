@@ -11,7 +11,7 @@ import { DashboardInbox } from "@/components/DashboardInbox";
 import { ProfileAnalysisCard } from "@/components/ProfileAnalysisCard";
 import {
   Copy, Check, ExternalLink, Loader2,
-  FolderGit2, GitBranch, Calendar, Star, UserCog, Wand2,
+  FolderGit2, GitBranch, Calendar, Star, UserCog, Wand2, Users,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -152,6 +152,12 @@ export default function DashboardPage() {
               title="Editar Perfil"
               description="Bio, título profissional, localização e redes sociais."
               href="/editar-perfil"
+            />
+            <DashCard
+              icon={<Users className="h-5 w-5" />}
+              title="Comunidade"
+              description="Veja e publique posts para a comunidade de devs."
+              href="/comunidade"
             />
           </div>
 

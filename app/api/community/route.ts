@@ -1,0 +1,81 @@
+import { z } from "zod";
+import { createClient } from "@supabase/supabase-js";
+import { createAuthedServerClient } from "@/lib/supabase/client";
+
+function extractJwt(req: Request): string | null {
+  const header = req.headers.get("authorization");
+  return header?.startsWith("Bearer ") ? header.slice(7) : null;
+}
+
+const CreatePostSchema = z.object({
+  content: z.string().min(10, "O post precisa de pelo menos 10 caracteres.").max(3000),
+  title: z.string().max(120).optional(),
+  repo_name: z.string().optional(),
+  tone: z.enum(["business", "technical", "free"]).default("free"),
+});
+
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const cursor = searchParams.get("cursor");
+  const limit = 20;
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  let query = supabase
+    .from("community_posts")
+    .select("id, username, full_name, avatar_url, title, content, repo_name, tone, likes_count, created_at")
+    .order("created_at", { ascending: false })
+    .limit(limit + 1);
+
+  if (cursor) {
+    query = query.lt("created_at", cursor);
+  }
+
+  const { data, error } = await query;
+  if (error) return Response.json({ error: error.message }, { status: 500 });
+
+  const hasMore = data.length > limit;
+  const posts = hasMore ? data.slice(0, limit) : data;
+  const nextCursor = hasMore ? posts[posts.length - 1].created_at : null;
+
+  return Response.json({ posts, nextCursor });
+}
+
+export async function POST(req: Request) {
+  const jwt = extractJwt(req);
+  if (!jwt) return Response.json({ error: "Não autenticado" }, { status: 401 });
+
+  const supabase = createAuthedServerClient(jwt);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return Response.json({ error: "Não autenticado" }, { status: 401 });
+
+  const raw = await req.json().catch(() => ({}));
+  const parsed = CreatePostSchema.safeParse(raw);
+  if (!parsed.success) {
+    return Response.json({ error: parsed.error.issues[0].message }, { status: 400 });
+  }
+
+  const { content, title, repo_name, tone } = parsed.data;
+
+  const { data, error } = await supabase
+    .from("community_posts")
+    .insert({
+      user_id: user.id,
+      username: user.user_metadata?.user_name ?? user.email,
+      full_name: user.user_metadata?.full_name ?? null,
+      avatar_url: user.user_metadata?.avatar_url ?? null,
+      content,
+      title: title || null,
+      repo_name: repo_name || null,
+      tone,
+    })
+    .select("id")
+    .single();
+
+  if (error) return Response.json({ error: error.message }, { status: 500 });
+
+  return Response.json({ id: data.id }, { status: 201 });
+}

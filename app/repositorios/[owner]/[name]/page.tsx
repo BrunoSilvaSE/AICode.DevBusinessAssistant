@@ -7,7 +7,7 @@ import { createBrowserClient } from "@/lib/supabase/client";
 import { useCompletion } from "@ai-sdk/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Star, Copy, Check, Loader2, ExternalLink, FileText, GitBranch, Save, Share2 } from "lucide-react";
+import { ArrowLeft, Star, Copy, Check, Loader2, ExternalLink, FileText, GitBranch, Save, Share2, Users } from "lucide-react";
 import { MermaidDiagram } from "@/components/MermaidDiagram";
 
 type RepoDetail = {
@@ -35,6 +35,8 @@ export default function RepoDetailPage() {
   const [copiedReadme, setCopiedReadme] = useState(false);
   const [diagramSaved, setDiagramSaved] = useState(false);
   const [sharedLinkedIn, setSharedLinkedIn] = useState(false);
+  const [publishingCommunity, setPublishingCommunity] = useState(false);
+  const [publishedCommunity, setPublishedCommunity] = useState(false);
 
   const supabaseTokenRef = useRef<string | null>(null);
   const wasGeneratingRef = useRef(false);
@@ -162,6 +164,20 @@ export default function RepoDetailPage() {
     setSharedLinkedIn(true);
     setTimeout(() => setSharedLinkedIn(false), 3000);
     window.open("https://www.linkedin.com/feed/", "_blank", "noopener,noreferrer");
+  }
+
+  async function handlePublishCommunity(text: string) {
+    const jwt = supabaseTokenRef.current;
+    if (!jwt) return;
+    setPublishingCommunity(true);
+    await fetch("/api/community", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${jwt}` },
+      body: JSON.stringify({ content: text, tone, repo_name: params.name }),
+    });
+    setPublishingCommunity(false);
+    setPublishedCommunity(true);
+    setTimeout(() => setPublishedCommunity(false), 4000);
   }
 
   if (loading) {
@@ -303,6 +319,15 @@ export default function RepoDetailPage() {
                         {sharedLinkedIn
                           ? <><Check className="h-3.5 w-3.5 mr-1.5" />Copiado!</>
                           : <><Share2 className="h-3.5 w-3.5 mr-1.5" />LinkedIn</>}
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handlePublishCommunity(completion)}
+                        disabled={publishingCommunity || publishedCommunity}
+                        className="border-primary/30 text-primary hover:bg-primary/10">
+                        {publishingCommunity
+                          ? <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Publicando...</>
+                          : publishedCommunity
+                          ? <><Check className="h-3.5 w-3.5 mr-1.5" />Publicado!</>
+                          : <><Users className="h-3.5 w-3.5 mr-1.5" />Comunidade</>}
                       </Button>
                     </div>
                   )}

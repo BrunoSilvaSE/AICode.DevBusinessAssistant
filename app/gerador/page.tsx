@@ -6,7 +6,7 @@ import { createBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
-import { ArrowLeft, Copy, Check, Loader2, Share2 } from "lucide-react";
+import { ArrowLeft, Copy, Check, Loader2, Share2, Users } from "lucide-react";
 
 type Tone = "business" | "technical";
 
@@ -15,6 +15,8 @@ export default function GeradorPage() {
   const [tone, setTone] = useState<Tone>("business");
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [published, setPublished] = useState(false);
   const supabaseTokenRef = useRef<string | null>(null);
   const wasLoadingRef = useRef(false);
 
@@ -65,6 +67,22 @@ export default function GeradorPage() {
     setShared(true);
     setTimeout(() => setShared(false), 3000);
     window.open("https://www.linkedin.com/feed/", "_blank", "noopener,noreferrer");
+  }
+
+  async function handlePublishCommunity() {
+    const jwt = supabaseTokenRef.current;
+    if (!jwt || !completion) return;
+    setPublishing(true);
+    const res = await fetch("/api/community", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${jwt}` },
+      body: JSON.stringify({ content: completion, tone, repo_name: "Standalone" }),
+    });
+    if (res.ok) {
+      setPublished(true);
+      setTimeout(() => setPublished(false), 4000);
+    }
+    setPublishing(false);
   }
 
   return (
@@ -160,6 +178,17 @@ export default function GeradorPage() {
                       <><Check className="h-3.5 w-3.5 mr-1.5" /> Copiado!</>
                     ) : (
                       <><Share2 className="h-3.5 w-3.5 mr-1.5" /> LinkedIn</>
+                    )}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handlePublishCommunity}
+                    disabled={publishing || published}
+                    className="border-primary/30 text-primary hover:bg-primary/10">
+                    {publishing ? (
+                      <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Publicando...</>
+                    ) : published ? (
+                      <><Check className="h-3.5 w-3.5 mr-1.5" /> Publicado!</>
+                    ) : (
+                      <><Users className="h-3.5 w-3.5 mr-1.5" /> Comunidade</>
                     )}
                   </Button>
                 </div>
