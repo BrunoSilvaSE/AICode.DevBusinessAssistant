@@ -1,11 +1,16 @@
-import { createBrowserClient } from "@/lib/supabase/client";
+import { createClient } from "@supabase/supabase-js";
+import { getMasteryLevel } from "@/lib/utils";
 
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ username: string }> }
 ) {
   const { username } = await params;
-  const supabase = createBrowserClient();
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   const { data: profile, error } = await supabase
     .from("profiles")
@@ -24,5 +29,11 @@ export async function GET(
     .order("created_at", { ascending: false })
     .limit(10);
 
-  return Response.json({ profile, posts: posts ?? [] });
+  type RawSkill = { name: string; count: number; first_year?: number };
+  const skills = ((profile.skills ?? []) as RawSkill[]).map((s) => ({
+    ...s,
+    mastery: getMasteryLevel(s.count).label,
+  }));
+
+  return Response.json({ profile: { ...profile, skills }, posts: posts ?? [] });
 }

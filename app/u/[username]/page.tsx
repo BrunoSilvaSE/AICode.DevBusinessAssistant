@@ -11,7 +11,7 @@ import { ContactForm } from "./ContactForm";
 import { MermaidDiagram } from "@/components/MermaidDiagram";
 import { CopyLinkedInButton } from "@/components/CopyLinkedInButton";
 
-type Skill = { name: string; count: number };
+type Skill = { name: string; count: number; first_year?: number };
 type Post = { id: string; repo_name: string; tone: string; content: string; created_at: string };
 type FeaturedRepo = {
   name: string;

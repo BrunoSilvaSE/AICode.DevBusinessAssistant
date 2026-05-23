@@ -3,16 +3,16 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@/lib/supabase/client";
-import { calculateSkills } from "@/lib/utils";
+import { calculateSkills, getMasteryLevel } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, RefreshCw, Calendar, MessageSquare, AlertCircle, TrendingUp, Loader2 } from "lucide-react";
+import { ArrowLeft, RefreshCw, Calendar, MessageSquare, AlertCircle, TrendingUp, Loader2, Download } from "lucide-react";
 import { GitHubIcon } from "@/components/icons/github";
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 
 type Post = { id: string; repo_name: string; tone: string; content: string; created_at: string };
-type Skill = { name: string; count: number };
+type Skill = { name: string; count: number; first_year?: number };
 type GithubRepo = { language: string | null; pushed_at: string; name: string };
 type YearSkills = { year: number; skills: { name: string; count: number }[] };
 
@@ -179,9 +179,14 @@ export default function PerfilPage() {
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold tracking-tight">Skills</h2>
-            {skillsSource === "db" && (
-              <span className="text-xs text-muted-foreground">GitHub Verified</span>
-            )}
+            <div className="flex items-center gap-2">
+              {skillsSource === "db" && (
+                <span className="text-xs text-muted-foreground">GitHub Verified</span>
+              )}
+              {skills.length > 0 && activeTab === "tree" && (
+                <ExportSkillTreeButton />
+              )}
+            </div>
           </div>
 
           {/* Tabs */}
@@ -226,26 +231,35 @@ export default function PerfilPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  {skills.map((skill) => (
-                    <div key={skill.name} className="rounded-lg border bg-card p-4 space-y-3">
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">{skill.name}</p>
-                        <p className="text-xs text-muted-foreground">{skill.count} repos</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4" data-skill-grid>
+                  {skills.map((skill) => {
+                    const mastery = getMasteryLevel(skill.count);
+                    const years = skill.first_year
+                      ? new Date().getFullYear() - skill.first_year + 1
+                      : null;
+                    return (
+                      <div key={skill.name} className="rounded-lg border bg-card p-4 space-y-3">
+                        <div className="space-y-0.5">
+                          <p className="text-sm font-medium">{skill.name}</p>
+                          <p className={`text-[10px] font-semibold uppercase tracking-wide ${mastery.className}`}>
+                            {mastery.label}
+                          </p>
+                        </div>
+                        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary"
+                            style={{ width: `${Math.min(100, (skill.count / skills[0].count) * 100)}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] text-muted-foreground">{skill.count} repos</span>
+                          {years !== null && years > 0 && (
+                            <span className="text-[10px] text-muted-foreground">{years} ano{years !== 1 ? "s" : ""}</span>
+                          )}
+                        </div>
                       </div>
-                      <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-primary"
-                          style={{ width: `${Math.min(100, (skill.count / skills[0].count) * 100)}%` }}
-                        />
-                      </div>
-                      <div className="flex justify-end">
-                        <Badge variant="secondary" className="text-[9px] h-4 uppercase tracking-tighter">
-                          Verified
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </>
@@ -340,5 +354,45 @@ export default function PerfilPage() {
         </section>
       </main>
     </div>
+  );
+}
+
+function ExportSkillTreeButton() {
+  const [exporting, setExporting] = useState(false);
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const { default: html2canvas } = await import("html2canvas");
+      const grid = document.querySelector("[data-skill-grid]") as HTMLElement | null;
+      if (!grid) return;
+      const canvas = await html2canvas(grid, {
+        backgroundColor: "#ffffff",
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      const link = document.createElement("a");
+      link.download = "skill-tree.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  return (
+    <button
+      onClick={handleExport}
+      disabled={exporting}
+      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border hover:border-foreground/40 hover:bg-accent/50 transition-colors disabled:opacity-50"
+    >
+      {exporting ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      ) : (
+        <Download className="h-3.5 w-3.5" />
+      )}
+      Exportar imagem
+    </button>
   );
 }
