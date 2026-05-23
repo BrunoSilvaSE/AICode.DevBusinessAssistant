@@ -7,7 +7,6 @@ import { createBrowserClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { GitHubIcon } from "@/components/icons/github";
-import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -71,7 +70,6 @@ export default function DashboardPage() {
             <Button asChild variant="ghost" size="sm">
               <Link href="/perfil">Ver Perfil</Link>
             </Button>
-            <ThemeToggle />
             <Button
               variant="outline"
               size="sm"
