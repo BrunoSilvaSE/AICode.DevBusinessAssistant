@@ -6,7 +6,7 @@ import { createBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
-import { ArrowLeft, Copy, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, Copy, Check, Loader2, Share2 } from "lucide-react";
 
 type Tone = "business" | "technical";
 
@@ -14,6 +14,7 @@ export default function GeradorPage() {
   const [input, setInput] = useState("");
   const [tone, setTone] = useState<Tone>("business");
   const [copied, setCopied] = useState(false);
+  const [shared, setShared] = useState(false);
   const supabaseTokenRef = useRef<string | null>(null);
   const wasLoadingRef = useRef(false);
 
@@ -57,6 +58,13 @@ export default function GeradorPage() {
     await navigator.clipboard.writeText(completion);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleShare() {
+    await navigator.clipboard.writeText(completion);
+    setShared(true);
+    setTimeout(() => setShared(false), 3000);
+    window.open("https://www.linkedin.com/feed/", "_blank", "noopener,noreferrer");
   }
 
   return (
@@ -138,13 +146,23 @@ export default function GeradorPage() {
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-medium">Post gerado</h2>
               {completion && !isLoading && (
-                <Button variant="outline" size="sm" onClick={handleCopy}>
-                  {copied ? (
-                    <><Check className="h-3.5 w-3.5 mr-1.5" /> Copiado!</>
-                  ) : (
-                    <><Copy className="h-3.5 w-3.5 mr-1.5" /> Copiar</>
-                  )}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={handleCopy}>
+                    {copied ? (
+                      <><Check className="h-3.5 w-3.5 mr-1.5" /> Copiado!</>
+                    ) : (
+                      <><Copy className="h-3.5 w-3.5 mr-1.5" /> Copiar</>
+                    )}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleShare}
+                    className="bg-[#0077B5]/10 border-[#0077B5]/30 text-[#0077B5] hover:bg-[#0077B5]/20 dark:text-blue-400 dark:border-blue-400/30">
+                    {shared ? (
+                      <><Check className="h-3.5 w-3.5 mr-1.5" /> Copiado!</>
+                    ) : (
+                      <><Share2 className="h-3.5 w-3.5 mr-1.5" /> LinkedIn</>
+                    )}
+                  </Button>
+                </div>
               )}
             </div>
             <div className="rounded-lg border bg-card p-5 whitespace-pre-wrap text-sm leading-relaxed min-h-32">
