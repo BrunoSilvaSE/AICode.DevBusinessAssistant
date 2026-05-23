@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Star, RefreshCw } from "lucide-react";
+import { ArrowLeft, Star, RefreshCw, Search, X } from "lucide-react";
 
 type Repo = {
   id: number;
@@ -22,6 +22,8 @@ export default function RepositoriosPage() {
   const [repos, setRepos] = useState<Repo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [langFilter, setLangFilter] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = createBrowserClient();
@@ -45,6 +47,20 @@ export default function RepositoriosPage() {
         .finally(() => setLoading(false));
     });
   }, [router]);
+
+  const languages = Array.from(
+    new Set(repos.map((r) => r.language).filter(Boolean))
+  ).sort() as string[];
+
+  const filtered = repos.filter((r) => {
+    const q = search.toLowerCase();
+    const matchesSearch =
+      !q ||
+      r.name.toLowerCase().includes(q) ||
+      (r.description ?? "").toLowerCase().includes(q);
+    const matchesLang = !langFilter || r.language === langFilter;
+    return matchesSearch && matchesLang;
+  });
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -82,48 +98,108 @@ export default function RepositoriosPage() {
             </div>
           )}
 
-          {!loading && !error && repos.length === 0 && (
-            <p className="text-muted-foreground text-sm">
-              Nenhum repositório público encontrado.
-            </p>
-          )}
-
-          <div className="space-y-3">
-            {repos.map((repo) => (
-              <Link
-                key={repo.id}
-                href={`/repositorios/${repo.owner}/${repo.name}`}
-                className="block rounded-lg border bg-card p-5 hover:border-foreground/30 hover:bg-accent/20 transition-colors"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{repo.name}</p>
-                    {repo.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        {repo.description}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-3 pt-1">
-                      {repo.language && (
-                        <span className="text-xs text-muted-foreground">
-                          {repo.language}
-                        </span>
-                      )}
-                      {repo.stars > 0 && (
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Star className="h-3 w-3" />
-                          {repo.stars}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
-                    {new Date(repo.updatedAt).toLocaleDateString("pt-BR")}
-                  </span>
+          {!loading && !error && (
+            <>
+              {/* Search + language filter */}
+              <div className="space-y-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Buscar por nome ou descrição..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full pl-9 pr-9 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  {search && (
+                    <button
+                      onClick={() => setSearch("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
-              </Link>
-            ))}
-          </div>
+
+                {languages.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setLangFilter(null)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors border ${
+                        !langFilter
+                          ? "bg-foreground text-background border-foreground"
+                          : "bg-background text-muted-foreground border-border hover:border-foreground/40"
+                      }`}
+                    >
+                      Todos
+                    </button>
+                    {languages.map((lang) => (
+                      <button
+                        key={lang}
+                        onClick={() => setLangFilter(langFilter === lang ? null : lang)}
+                        className={`px-3 py-1 rounded-full text-xs font-medium transition-colors border ${
+                          langFilter === lang
+                            ? "bg-foreground text-background border-foreground"
+                            : "bg-background text-muted-foreground border-border hover:border-foreground/40"
+                        }`}
+                      >
+                        {lang}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {repos.length === 0 && (
+                <p className="text-muted-foreground text-sm">
+                  Nenhum repositório público encontrado.
+                </p>
+              )}
+
+              {repos.length > 0 && filtered.length === 0 && (
+                <p className="text-muted-foreground text-sm">
+                  Nenhum resultado para "{search}"{langFilter ? ` em ${langFilter}` : ""}.
+                </p>
+              )}
+
+              <div className="space-y-3">
+                {filtered.map((repo) => (
+                  <Link
+                    key={repo.id}
+                    href={`/repositorios/${repo.owner}/${repo.name}`}
+                    className="block rounded-lg border bg-card p-5 hover:border-foreground/30 hover:bg-accent/20 transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{repo.name}</p>
+                        {repo.description && (
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {repo.description}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-3 pt-1">
+                          {repo.language && (
+                            <span className="text-xs text-muted-foreground">
+                              {repo.language}
+                            </span>
+                          )}
+                          {repo.stars > 0 && (
+                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Star className="h-3 w-3" />
+                              {repo.stars}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
+                        {new Date(repo.updatedAt).toLocaleDateString("pt-BR")}
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </main>
     </div>
