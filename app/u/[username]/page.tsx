@@ -87,6 +87,26 @@ function serverSupabase() {
   );
 }
 
+type GitHubStats = { publicRepos: number; followers: number; totalStars: number };
+
+async function fetchGitHubStats(username: string): Promise<GitHubStats> {
+  try {
+    const res = await fetch(`https://api.github.com/users/${username}`, {
+      headers: { Accept: "application/vnd.github+json" },
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) return { publicRepos: 0, followers: 0, totalStars: 0 };
+    const user = await res.json();
+    return {
+      publicRepos: user.public_repos ?? 0,
+      followers: user.followers ?? 0,
+      totalStars: 0,
+    };
+  } catch {
+    return { publicRepos: 0, followers: 0, totalStars: 0 };
+  }
+}
+
 async function fetchPublicProfile(username: string) {
   const supabase = serverSupabase();
   const { data: profile, error } = await supabase
@@ -97,7 +117,7 @@ async function fetchPublicProfile(username: string) {
 
   if (error || !profile) return null;
 
-  const [postsResult, timelineResult] = await Promise.all([
+  const [postsResult, timelineResult, githubStats] = await Promise.all([
     supabase
       .from("posts")
       .select("id, repo_name, tone, content, created_at")
@@ -109,12 +129,14 @@ async function fetchPublicProfile(username: string) {
       .select("*")
       .eq("user_id", (profile as Profile).user_id)
       .order("start_date", { ascending: false }),
+    fetchGitHubStats(username),
   ]);
 
   return {
     profile: profile as Profile,
     posts: (postsResult.data ?? []) as Post[],
     timeline: (timelineResult.data ?? []) as TimelineItem[],
+    githubStats,
   };
 }
 
@@ -170,7 +192,7 @@ export default async function PublicProfilePage({
   const data = await fetchPublicProfile(username);
 
   if (!data) notFound();
-  const { profile, posts, timeline } = data;
+  const { profile, posts, timeline, githubStats } = data;
   const displayName = profile.full_name ?? profile.username;
   const hiddenSet = new Set(profile.hidden_skills ?? []);
   const visibleSkills = (profile.skills ?? []).filter((s) => !hiddenSet.has(s.name));
@@ -291,22 +313,20 @@ export default async function PublicProfilePage({
               </div>
 
               {/* Stats */}
-              {(hasSkills || timeline.length > 0 || posts.length > 0) && (
-                <div className="flex items-center justify-center sm:justify-start gap-8 pt-1 border-t border-white/10">
-                  {hasSkills && (
-                    <HeroStat value={visibleSkills.length + customSkills.length} label="tecnologias" />
-                  )}
-                  {profile.featured_repos?.length > 0 && (
-                    <HeroStat value={profile.featured_repos.length} label="projetos" />
-                  )}
-                  {timeline.length > 0 && (
-                    <HeroStat value={timeline.length} label="experiências" />
-                  )}
-                  {posts.length > 0 && (
-                    <HeroStat value={posts.length} label="posts" />
-                  )}
-                </div>
-              )}
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-6 pt-1 border-t border-white/10">
+                {githubStats.publicRepos > 0 && (
+                  <HeroStat value={githubStats.publicRepos} label="repositórios" />
+                )}
+                {githubStats.followers > 0 && (
+                  <HeroStat value={githubStats.followers} label="seguidores" />
+                )}
+                {hasSkills && (
+                  <HeroStat value={visibleSkills.length + customSkills.length} label="tecnologias" />
+                )}
+                {profile.featured_repos?.length > 0 && (
+                  <HeroStat value={profile.featured_repos.length} label="projetos" />
+                )}
+              </div>
             </div>
           </div>
         </div>
