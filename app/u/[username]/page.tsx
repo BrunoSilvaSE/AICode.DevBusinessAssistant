@@ -15,6 +15,7 @@ type FeaturedRepo = {
   html_url: string;
   language: string | null;
   stargazers_count: number;
+  cover_url?: string | null;
 };
 type Profile = {
   user_id: string;
@@ -425,30 +426,47 @@ function RepoCard({ repo }: { repo: FeaturedRepo }) {
       href={repo.html_url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex flex-col rounded-xl border bg-card p-5 space-y-3 hover:border-foreground/30 hover:shadow-md transition-all"
+      className="group flex flex-col rounded-xl border bg-card overflow-hidden hover:border-foreground/30 hover:shadow-md transition-all"
     >
-      <div className="flex items-start justify-between gap-2">
-        <span className="font-semibold text-sm leading-tight group-hover:underline">
-          {repo.name}
-        </span>
-        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+      {/* Cover image */}
+      <div className="aspect-video w-full overflow-hidden bg-muted">
+        {repo.cover_url ? (
+          <img
+            src={repo.cover_url}
+            alt={repo.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900">
+            <GitHubIcon className="h-8 w-8 text-muted-foreground/20" />
+          </div>
+        )}
       </div>
-      {repo.description && (
-        <p className="text-xs text-muted-foreground line-clamp-2 flex-1">{repo.description}</p>
-      )}
-      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-        {repo.language && (
-          <span className="flex items-center gap-1.5">
-            <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${langColor}`} />
-            {repo.language}
+      {/* Content */}
+      <div className="p-4 space-y-2 flex flex-col flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <span className="font-semibold text-sm leading-tight group-hover:underline">
+            {repo.name}
           </span>
+          <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </div>
+        {repo.description && (
+          <p className="text-xs text-muted-foreground line-clamp-2 flex-1">{repo.description}</p>
         )}
-        {repo.stargazers_count > 0 && (
-          <span className="flex items-center gap-1">
-            <Star className="h-3 w-3" />
-            {repo.stargazers_count}
-          </span>
-        )}
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          {repo.language && (
+            <span className="flex items-center gap-1.5">
+              <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${langColor}`} />
+              {repo.language}
+            </span>
+          )}
+          {repo.stargazers_count > 0 && (
+            <span className="flex items-center gap-1">
+              <Star className="h-3 w-3" />
+              {repo.stargazers_count}
+            </span>
+          )}
+        </div>
       </div>
     </a>
   );

@@ -12,6 +12,7 @@ type FeaturedRepo = {
   html_url: string;
   language: string | null;
   stargazers_count: number;
+  cover_url?: string | null;
 };
 
 export async function GET(req: Request) {
