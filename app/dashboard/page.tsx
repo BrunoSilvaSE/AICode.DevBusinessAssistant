@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { GitHubIcon } from "@/components/icons/github";
 import { DashboardInbox } from "@/components/DashboardInbox";
 import { ProfileAnalysisCard } from "@/components/ProfileAnalysisCard";
+import { Copy, Check, ExternalLink } from "lucide-react";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -151,13 +152,16 @@ export default function DashboardPage() {
               {user.email}
             </p>
             {user.user_metadata?.user_name && (
-              <div className="mt-3 pt-3 border-t">
+              <div className="mt-3 pt-3 border-t flex items-center gap-2 flex-wrap">
                 <Link
                   href={`/u/${user.user_metadata.user_name}`}
-                  className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4"
+                  target="_blank"
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
                 >
-                  Ver portfólio público → /u/{user.user_metadata.user_name}
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  /u/{user.user_metadata.user_name}
                 </Link>
+                <CopyPortfolioButton username={user.user_metadata.user_name as string} />
               </div>
             )}
           </div>
@@ -197,5 +201,36 @@ function DashCard({
       </div>
       <p className="text-sm text-muted-foreground">{description}</p>
     </a>
+  );
+}
+
+function CopyPortfolioButton({ username }: { username: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const copy = () => {
+    const url = `${window.location.origin}/u/${username}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <button
+      onClick={copy}
+      className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border hover:border-foreground/40 transition-colors"
+    >
+      {copied ? (
+        <>
+          <Check className="h-3.5 w-3.5 text-green-500" />
+          <span className="text-green-600">Copiado!</span>
+        </>
+      ) : (
+        <>
+          <Copy className="h-3.5 w-3.5" />
+          Compartilhar portfólio
+        </>
+      )}
+    </button>
   );
 }
