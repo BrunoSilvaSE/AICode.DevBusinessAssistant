@@ -13,6 +13,7 @@ type FeaturedRepo = {
   language: string | null;
   stargazers_count: number;
   cover_url?: string | null;
+  diagram_mermaid?: string | null;
 };
 
 export async function GET(req: Request) {
@@ -47,6 +48,38 @@ export async function PUT(req: Request) {
   const supabase = createAuthedServerClient(jwt);
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Não autenticado" }, { status: 401 });
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ featured_repos: repos })
+    .eq("user_id", user.id);
+
+  if (error) return Response.json({ error: error.message }, { status: 500 });
+  return Response.json({ success: true });
+}
+
+export async function PATCH(req: Request) {
+  const jwt = extractJwt(req);
+  if (!jwt) return Response.json({ error: "Não autenticado" }, { status: 401 });
+
+  const { full_name, diagram_mermaid } = await req.json().catch(() => ({}));
+  if (!full_name) return Response.json({ error: "full_name é obrigatório" }, { status: 400 });
+
+  const supabase = createAuthedServerClient(jwt);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return Response.json({ error: "Não autenticado" }, { status: 401 });
+
+  const { data, error: fetchError } = await supabase
+    .from("profiles")
+    .select("featured_repos")
+    .eq("user_id", user.id)
+    .single();
+
+  if (fetchError) return Response.json({ error: fetchError.message }, { status: 500 });
+
+  const repos = ((data?.featured_repos ?? []) as FeaturedRepo[]).map((r) =>
+    r.full_name === full_name ? { ...r, diagram_mermaid } : r
+  );
 
   const { error } = await supabase
     .from("profiles")

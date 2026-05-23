@@ -7,7 +7,8 @@ import { createBrowserClient } from "@/lib/supabase/client";
 import { useCompletion } from "@ai-sdk/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Star, Copy, Check, Loader2, ExternalLink, FileText } from "lucide-react";
+import { ArrowLeft, Star, Copy, Check, Loader2, ExternalLink, FileText, GitBranch, Save } from "lucide-react";
+import { MermaidDiagram } from "@/components/MermaidDiagram";
 
 type RepoDetail = {
   name: string;
@@ -21,7 +22,7 @@ type RepoDetail = {
 };
 
 type Tone = "business" | "technical";
-type Mode = "post" | "readme";
+type Mode = "post" | "readme" | "diagram";
 
 export default function RepoDetailPage() {
   const router = useRouter();
@@ -32,6 +33,7 @@ export default function RepoDetailPage() {
   const [mode, setMode] = useState<Mode>("post");
   const [copiedPost, setCopiedPost] = useState(false);
   const [copiedReadme, setCopiedReadme] = useState(false);
+  const [diagramSaved, setDiagramSaved] = useState(false);
 
   const supabaseTokenRef = useRef<string | null>(null);
   const wasGeneratingRef = useRef(false);
@@ -50,6 +52,16 @@ export default function RepoDetailPage() {
     error: readmeError,
   } = useCompletion({
     api: "/api/generate-readme",
+    streamProtocol: "text",
+  });
+
+  const {
+    completion: diagramCompletion,
+    complete: completeDiagram,
+    isLoading: diagramGenerating,
+    error: diagramError,
+  } = useCompletion({
+    api: "/api/generate-diagram",
     streamProtocol: "text",
   });
 
@@ -112,6 +124,30 @@ export default function RepoDetailPage() {
         readme: repo.readme,
       },
     });
+  }
+
+  async function handleGenerateDiagram() {
+    if (!repo) return;
+    await completeDiagram("", {
+      body: {
+        repoName: repo.name,
+        description: repo.description,
+        languages: repo.languages,
+        readme: repo.readme,
+      },
+    });
+  }
+
+  async function handleSaveDiagram() {
+    const jwt = supabaseTokenRef.current;
+    if (!jwt || !diagramCompletion) return;
+    await fetch("/api/featured-repos", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${jwt}` },
+      body: JSON.stringify({ full_name: `${params.owner}/${params.name}`, diagram_mermaid: diagramCompletion }),
+    });
+    setDiagramSaved(true);
+    setTimeout(() => setDiagramSaved(false), 3000);
   }
 
   async function handleCopy(text: string, setter: (v: boolean) => void) {
@@ -200,6 +236,17 @@ export default function RepoDetailPage() {
           >
             <FileText className="h-3.5 w-3.5" />
             Auto-README
+          </button>
+          <button
+            onClick={() => setMode("diagram")}
+            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              mode === "diagram"
+                ? "bg-foreground text-background"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <GitBranch className="h-3.5 w-3.5" />
+            Diagrama
           </button>
         </div>
 
@@ -296,6 +343,56 @@ export default function RepoDetailPage() {
             {readmeError && (
               <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
                 Erro ao gerar README. Tente novamente.
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Diagram mode */}
+        {mode === "diagram" && (
+          <>
+            <div className="rounded-lg border bg-card p-6 space-y-4">
+              <div className="space-y-1">
+                <h2 className="font-semibold">Diagrama de Arquitetura</h2>
+                <p className="text-sm text-muted-foreground">
+                  A IA analisa o repositório e gera um diagrama Mermaid da arquitetura ou fluxo principal.
+                </p>
+              </div>
+              <Button onClick={handleGenerateDiagram} disabled={diagramGenerating} className="w-full" size="lg">
+                {diagramGenerating ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando diagrama...</>
+                ) : (
+                  <><GitBranch className="mr-2 h-4 w-4" /> Gerar Diagrama</>
+                )}
+              </Button>
+            </div>
+
+            {(diagramCompletion || diagramGenerating) && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-medium">Diagrama gerado</h2>
+                  {diagramCompletion && !diagramGenerating && (
+                    <Button variant="outline" size="sm" onClick={handleSaveDiagram}>
+                      {diagramSaved
+                        ? <><Check className="h-3.5 w-3.5 mr-1.5" />Salvo!</>
+                        : <><Save className="h-3.5 w-3.5 mr-1.5" />Salvar no portfólio</>}
+                    </Button>
+                  )}
+                </div>
+                {diagramGenerating && !diagramCompletion && (
+                  <div className="rounded-lg border bg-card p-5 text-sm text-muted-foreground animate-pulse">
+                    Gerando diagrama...
+                  </div>
+                )}
+                {diagramCompletion && (
+                  <MermaidDiagram chart={diagramCompletion} />
+                )}
+              </div>
+            )}
+
+            {diagramError && (
+              <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+                Erro ao gerar diagrama. Tente novamente.
               </div>
             )}
           </>

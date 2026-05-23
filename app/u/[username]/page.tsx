@@ -7,6 +7,7 @@ import { GitHubIcon } from "@/components/icons/github";
 import { PortfolioNav } from "./PortfolioNav";
 import { SkillsSection } from "./SkillsSection";
 import { ContactForm } from "./ContactForm";
+import { MermaidDiagram } from "@/components/MermaidDiagram";
 
 type Skill = { name: string; count: number };
 type Post = { id: string; repo_name: string; tone: string; content: string; created_at: string };
@@ -18,6 +19,7 @@ type FeaturedRepo = {
   language: string | null;
   stargazers_count: number;
   cover_url?: string | null;
+  diagram_mermaid?: string | null;
 };
 type Profile = {
   user_id: string;
@@ -469,53 +471,61 @@ function SectionHeader({ label, title }: { label: string; title: string }) {
 function RepoCard({ repo }: { repo: FeaturedRepo }) {
   const langColor = LANG_COLORS[repo.language ?? ""] ?? "bg-slate-400";
   return (
-    <a
-      href={repo.html_url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group flex flex-col rounded-xl border bg-card overflow-hidden hover:border-foreground/30 hover:shadow-md transition-all"
-    >
-      {/* Cover image */}
-      <div className="aspect-video w-full overflow-hidden bg-muted">
-        {repo.cover_url ? (
-          <img
-            src={repo.cover_url}
-            alt={repo.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900">
-            <GitHubIcon className="h-8 w-8 text-muted-foreground/20" />
+    <div className="flex flex-col gap-3">
+      <a
+        href={repo.html_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="group flex flex-col rounded-xl border bg-card overflow-hidden hover:border-foreground/30 hover:shadow-md transition-all"
+      >
+        {/* Cover image */}
+        <div className="aspect-video w-full overflow-hidden bg-muted">
+          {repo.cover_url ? (
+            <img
+              src={repo.cover_url}
+              alt={repo.name}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900">
+              <GitHubIcon className="h-8 w-8 text-muted-foreground/20" />
+            </div>
+          )}
+        </div>
+        {/* Content */}
+        <div className="p-4 space-y-2 flex flex-col flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <span className="font-semibold text-sm leading-tight group-hover:underline">
+              {repo.name}
+            </span>
+            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
-        )}
-      </div>
-      {/* Content */}
-      <div className="p-4 space-y-2 flex flex-col flex-1">
-        <div className="flex items-start justify-between gap-2">
-          <span className="font-semibold text-sm leading-tight group-hover:underline">
-            {repo.name}
-          </span>
-          <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-        </div>
-        {repo.description && (
-          <p className="text-xs text-muted-foreground line-clamp-2 flex-1">{repo.description}</p>
-        )}
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          {repo.language && (
-            <span className="flex items-center gap-1.5">
-              <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${langColor}`} />
-              {repo.language}
-            </span>
+          {repo.description && (
+            <p className="text-xs text-muted-foreground line-clamp-2 flex-1">{repo.description}</p>
           )}
-          {repo.stargazers_count > 0 && (
-            <span className="flex items-center gap-1">
-              <Star className="h-3 w-3" />
-              {repo.stargazers_count}
-            </span>
-          )}
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            {repo.language && (
+              <span className="flex items-center gap-1.5">
+                <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${langColor}`} />
+                {repo.language}
+              </span>
+            )}
+            {repo.stargazers_count > 0 && (
+              <span className="flex items-center gap-1">
+                <Star className="h-3 w-3" />
+                {repo.stargazers_count}
+              </span>
+            )}
+          </div>
         </div>
-      </div>
-    </a>
+      </a>
+      {repo.diagram_mermaid && (
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground px-1">Arquitetura</p>
+          <MermaidDiagram chart={repo.diagram_mermaid} />
+        </div>
+      )}
+    </div>
   );
 }
 
