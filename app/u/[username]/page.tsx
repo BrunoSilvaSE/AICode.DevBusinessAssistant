@@ -2,17 +2,12 @@ import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MessageSquare, ChevronRight, Star, ExternalLink } from "lucide-react";
+import { Calendar, MapPin, ExternalLink, Star, ChevronRight } from "lucide-react";
 import { GitHubIcon } from "@/components/icons/github";
+import { PortfolioNav } from "./PortfolioNav";
 
 type Skill = { name: string; count: number };
-type Post = {
-  id: string;
-  repo_name: string;
-  tone: string;
-  content: string;
-  created_at: string;
-};
+type Post = { id: string; repo_name: string; tone: string; content: string; created_at: string };
 type FeaturedRepo = {
   name: string;
   full_name: string;
@@ -27,6 +22,10 @@ type Profile = {
   full_name: string | null;
   avatar_url: string | null;
   bio: string | null;
+  bio_long: string | null;
+  role_title: string | null;
+  linkedin_url: string | null;
+  location: string | null;
   skills: Skill[];
   featured_repos: FeaturedRepo[];
 };
@@ -35,25 +34,39 @@ type TimelineItem = {
   type: string;
   title: string;
   institution: string | null;
+  description: string | null;
   start_date: string;
   end_date: string | null;
   current: boolean;
+  repo_url: string | null;
+  repo_name: string | null;
 };
 
-const TYPE_LABELS: Record<string, string> = {
-  work: "Experiência",
-  education: "Formação",
-  bootcamp: "Bootcamp",
-  certification: "Certificação",
-  project: "Projeto",
+const TYPE_META: Record<string, { label: string; icon: string; dot: string; pill: string }> = {
+  work: { label: "Experiência", icon: "💼", dot: "bg-blue-500", pill: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
+  education: { label: "Formação", icon: "🎓", dot: "bg-purple-500", pill: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" },
+  bootcamp: { label: "Bootcamp", icon: "🚀", dot: "bg-orange-500", pill: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300" },
+  certification: { label: "Certificação", icon: "🏆", dot: "bg-green-500", pill: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" },
+  project: { label: "Projeto", icon: "🛠️", dot: "bg-pink-500", pill: "bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300" },
 };
 
-const TYPE_DOT: Record<string, string> = {
-  work: "bg-blue-500",
-  education: "bg-purple-500",
-  bootcamp: "bg-orange-500",
-  certification: "bg-green-500",
-  project: "bg-pink-500",
+const LANG_COLORS: Record<string, string> = {
+  TypeScript: "bg-blue-500",
+  JavaScript: "bg-yellow-400",
+  Python: "bg-green-500",
+  Java: "bg-orange-500",
+  "C#": "bg-purple-500",
+  Go: "bg-cyan-500",
+  Rust: "bg-orange-700",
+  Ruby: "bg-red-500",
+  PHP: "bg-indigo-500",
+  Swift: "bg-orange-400",
+  Kotlin: "bg-violet-500",
+  Dart: "bg-blue-400",
+  HTML: "bg-orange-600",
+  CSS: "bg-blue-600",
+  Shell: "bg-gray-500",
+  Vue: "bg-emerald-500",
 };
 
 function serverSupabase() {
@@ -65,7 +78,6 @@ function serverSupabase() {
 
 async function fetchPublicProfile(username: string) {
   const supabase = serverSupabase();
-
   const { data: profile, error } = await supabase
     .from("profiles")
     .select("*")
@@ -80,13 +92,12 @@ async function fetchPublicProfile(username: string) {
       .select("id, repo_name, tone, content, created_at")
       .eq("user_id", (profile as Profile).user_id)
       .order("created_at", { ascending: false })
-      .limit(10),
+      .limit(6),
     supabase
       .from("timeline_items")
-      .select("id, type, title, institution, start_date, end_date, current")
+      .select("*")
       .eq("user_id", (profile as Profile).user_id)
-      .order("start_date", { ascending: false })
-      .limit(4),
+      .order("start_date", { ascending: false }),
   ]);
 
   return {
@@ -105,184 +116,395 @@ export default async function PublicProfilePage({
   const data = await fetchPublicProfile(username);
 
   if (!data) notFound();
-
   const { profile, posts, timeline } = data;
   const displayName = profile.full_name ?? profile.username;
+  const topSkills = (profile.skills ?? []).slice(0, 12);
+  const maxCount = topSkills[0]?.count ?? 1;
+
+  const navItems = [
+    { href: "#inicio", label: "Início" },
+    ...(profile.bio_long ? [{ href: "#sobre", label: "Sobre" }] : []),
+    ...(topSkills.length > 0 ? [{ href: "#habilidades", label: "Habilidades" }] : []),
+    ...(profile.featured_repos?.length > 0 ? [{ href: "#projetos", label: "Projetos" }] : []),
+    ...(timeline.length > 0 ? [{ href: "#experiencia", label: "Experiência" }] : []),
+    ...(posts.length > 0 ? [{ href: "#posts", label: "Posts" }] : []),
+    { href: "#contato", label: "Contato" },
+  ];
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <header className="border-b">
-        <div className="max-w-3xl mx-auto px-6 py-4">
-          <span className="font-semibold text-sm tracking-tight">
-            Dev Business Assistant
-          </span>
+      <PortfolioNav items={navItems} />
+
+      {/* ── HERO ── */}
+      <section
+        id="inicio"
+        className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-white overflow-hidden -mt-[53px] pt-[53px]"
+      >
+        {/* Decorative glow */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-72 h-72 bg-purple-600/10 rounded-full blur-3xl" />
         </div>
-      </header>
 
-      <main className="flex-1 max-w-3xl mx-auto w-full px-6 py-12 space-y-10">
-        {/* Hero */}
-        <section className="flex items-center gap-6">
-          {profile.avatar_url ? (
-            <img
-              src={profile.avatar_url}
-              alt={displayName}
-              className="h-20 w-20 rounded-full border"
-            />
-          ) : (
-            <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center text-2xl font-bold">
-              {displayName[0].toUpperCase()}
+        <div className="relative max-w-4xl mx-auto px-6 py-20 sm:py-28">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-8 text-center sm:text-left">
+            {/* Avatar */}
+            <div className="shrink-0">
+              {profile.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt={displayName}
+                  className="h-32 w-32 rounded-full ring-4 ring-white/20 shadow-2xl"
+                />
+              ) : (
+                <div className="h-32 w-32 rounded-full ring-4 ring-white/20 bg-slate-700 flex items-center justify-center text-4xl font-bold">
+                  {displayName[0].toUpperCase()}
+                </div>
+              )}
             </div>
-          )}
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold tracking-tight">{displayName}</h1>
-            <p className="text-muted-foreground text-sm flex items-center gap-1.5">
-              <GitHubIcon className="h-4 w-4" />
-              @{profile.username}
-            </p>
-            {profile.bio && (
-              <p className="text-sm text-muted-foreground mt-1">{profile.bio}</p>
-            )}
-          </div>
-        </section>
 
-        {/* Featured Repos */}
-        {profile.featured_repos?.length > 0 && (
-          <section className="space-y-4">
-            <h2 className="font-semibold text-lg">Projetos em Destaque</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {profile.featured_repos.map((repo) => (
+            {/* Info */}
+            <div className="flex-1 space-y-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-blue-400 mb-1">
+                  Portfólio
+                </p>
+                <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">{displayName}</h1>
+                {profile.role_title && (
+                  <p className="text-lg sm:text-xl text-slate-300 mt-2">{profile.role_title}</p>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-4 text-slate-400 text-sm">
+                {profile.location && (
+                  <span className="flex items-center gap-1.5">
+                    <MapPin className="h-4 w-4" />
+                    {profile.location}
+                  </span>
+                )}
+                {profile.bio && !profile.bio_long && (
+                  <span className="text-slate-400 italic">{profile.bio}</span>
+                )}
+              </div>
+
+              {/* Social links */}
+              <div className="flex items-center justify-center sm:justify-start gap-3">
                 <a
-                  key={repo.full_name}
-                  href={repo.html_url}
+                  href={`https://github.com/${profile.username}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group rounded-lg border bg-card p-4 space-y-2 hover:border-foreground/30 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-sm font-medium"
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="font-medium text-sm group-hover:underline">{repo.name}</span>
-                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
-                  </div>
-                  {repo.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-2">{repo.description}</p>
-                  )}
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    {repo.language && <span>{repo.language}</span>}
-                    {repo.stargazers_count > 0 && (
-                      <span className="flex items-center gap-0.5">
-                        <Star className="h-3 w-3" />
-                        {repo.stargazers_count}
-                      </span>
-                    )}
-                  </div>
+                  <GitHubIcon className="h-4 w-4" />
+                  GitHub
                 </a>
+                {profile.linkedin_url && (
+                  <a
+                    href={profile.linkedin_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600/80 hover:bg-blue-600 transition-colors text-sm font-medium"
+                  >
+                    <LinkedInIcon className="h-4 w-4" />
+                    LinkedIn
+                  </a>
+                )}
+              </div>
+
+              {/* Stats */}
+              {(topSkills.length > 0 || timeline.length > 0 || posts.length > 0) && (
+                <div className="flex items-center justify-center sm:justify-start gap-8 pt-1 border-t border-white/10">
+                  {topSkills.length > 0 && (
+                    <HeroStat value={topSkills.length} label="tecnologias" />
+                  )}
+                  {profile.featured_repos?.length > 0 && (
+                    <HeroStat value={profile.featured_repos.length} label="projetos" />
+                  )}
+                  {timeline.length > 0 && (
+                    <HeroStat value={timeline.length} label="experiências" />
+                  )}
+                  {posts.length > 0 && (
+                    <HeroStat value={posts.length} label="posts" />
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── SOBRE MIM ── */}
+      {profile.bio_long && (
+        <section id="sobre" className="py-16 sm:py-24">
+          <div className="max-w-4xl mx-auto px-6">
+            <SectionHeader label="Apresentação" title="Sobre Mim" />
+            <div className="mt-8 max-w-2xl space-y-4">
+              {profile.bio_long.split("\n").filter(Boolean).map((para, i) => (
+                <p key={i} className="text-muted-foreground leading-relaxed">
+                  {para}
+                </p>
               ))}
             </div>
-          </section>
-        )}
+          </div>
+        </section>
+      )}
 
-        {/* Skill Tree */}
-        {profile.skills.length > 0 && (
-          <section className="space-y-4">
-            <h2 className="font-semibold text-lg">Skill Tree</h2>
-            <div className="flex flex-wrap gap-2">
-              {profile.skills.map((skill) => (
-                <SkillBadge key={skill.name} skill={skill} />
+      {/* ── HABILIDADES ── */}
+      {topSkills.length > 0 && (
+        <section id="habilidades" className="py-16 sm:py-24 bg-muted/40">
+          <div className="max-w-4xl mx-auto px-6">
+            <SectionHeader label="Stack Técnica" title="Habilidades" />
+            <p className="mt-2 text-sm text-muted-foreground">
+              Inferidas automaticamente a partir dos repositórios públicos no GitHub.
+            </p>
+            <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {topSkills.map((skill) => (
+                <SkillCard key={skill.name} skill={skill} max={maxCount} />
               ))}
             </div>
-          </section>
-        )}
+          </div>
+        </section>
+      )}
 
-        {/* Mini Timeline */}
-        {timeline.length > 0 && (
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-lg">Linha do Tempo</h2>
+      {/* ── PROJETOS ── */}
+      {profile.featured_repos?.length > 0 && (
+        <section id="projetos" className="py-16 sm:py-24">
+          <div className="max-w-4xl mx-auto px-6">
+            <SectionHeader label="GitHub" title="Projetos em Destaque" />
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {profile.featured_repos.map((repo) => (
+                <RepoCard key={repo.full_name} repo={repo} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── EXPERIÊNCIA ── */}
+      {timeline.length > 0 && (
+        <section id="experiencia" className="py-16 sm:py-24 bg-muted/40">
+          <div className="max-w-4xl mx-auto px-6">
+            <div className="flex items-end justify-between">
+              <SectionHeader label="Trajetória" title="Experiência" />
               <Link
                 href={`/u/${username}/timeline`}
-                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-1"
               >
-                Ver completa
-                <ChevronRight className="h-4 w-4" />
+                Ver completa <ChevronRight className="h-4 w-4" />
               </Link>
             </div>
-            <div className="relative">
-              <div className="absolute left-3 top-2 bottom-2 w-px bg-border" />
-              <div className="space-y-4">
-                {timeline.map((item) => (
-                  <MiniTimelineItem key={item.id} item={item} />
+            <div className="mt-8 relative">
+              <div className="absolute left-5 top-2 bottom-2 w-px bg-border" />
+              <div className="space-y-5">
+                {timeline.slice(0, 5).map((item) => (
+                  <TimelineCard key={item.id} item={item} />
                 ))}
               </div>
             </div>
-            <Link
-              href={`/u/${username}/timeline`}
-              className="flex items-center justify-center gap-1.5 w-full rounded-lg border border-dashed py-3 text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
-            >
-              Ver linha do tempo completa
-              <ChevronRight className="h-4 w-4" />
-            </Link>
-          </section>
-        )}
+            {timeline.length > 5 && (
+              <Link
+                href={`/u/${username}/timeline`}
+                className="mt-6 flex items-center justify-center gap-2 w-full rounded-xl border border-dashed py-3.5 text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+              >
+                Ver todas as {timeline.length} experiências
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+            )}
+          </div>
+        </section>
+      )}
 
-        {/* Posts */}
-        {posts.length > 0 && (
-          <section className="space-y-4">
-            <h2 className="font-semibold text-lg">Posts Gerados</h2>
-            <div className="space-y-4">
+      {/* ── POSTS ── */}
+      {posts.length > 0 && (
+        <section id="posts" className="py-16 sm:py-24">
+          <div className="max-w-4xl mx-auto px-6">
+            <SectionHeader label="LinkedIn" title="Posts Gerados por IA" />
+            <p className="mt-2 text-sm text-muted-foreground">
+              Posts criados com base nos repositórios do GitHub.
+            </p>
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
               {posts.map((post) => (
                 <PostCard key={post.id} post={post} />
               ))}
             </div>
-          </section>
-        )}
+          </div>
+        </section>
+      )}
 
-        {posts.length === 0 && profile.skills.length === 0 && timeline.length === 0 && (
-          <p className="text-muted-foreground text-sm">
-            Este perfil ainda não possui conteúdo público.
+      {/* ── CONTATO ── */}
+      <section
+        id="contato"
+        className="py-16 sm:py-24 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-white"
+      >
+        <div className="max-w-4xl mx-auto px-6 text-center space-y-6">
+          <p className="text-xs font-semibold uppercase tracking-widest text-blue-400">
+            Contato
           </p>
-        )}
-      </main>
+          <h2 className="text-2xl sm:text-3xl font-bold">Vamos Conversar?</h2>
+          <p className="text-slate-400 max-w-sm mx-auto text-sm">
+            Entre em contato pelo GitHub ou LinkedIn para colaborações, projetos e oportunidades.
+          </p>
+          <div className="flex items-center justify-center gap-4">
+            <a
+              href={`https://github.com/${profile.username}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-6 py-3 rounded-full bg-white text-slate-900 hover:bg-slate-100 transition-colors font-medium text-sm"
+            >
+              <GitHubIcon className="h-5 w-5" />
+              @{profile.username}
+            </a>
+            {profile.linkedin_url && (
+              <a
+                href={profile.linkedin_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-6 py-3 rounded-full bg-blue-600 text-white hover:bg-blue-500 transition-colors font-medium text-sm"
+              >
+                <LinkedInIcon className="h-5 w-5" />
+                LinkedIn
+              </a>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-slate-950 text-slate-500 text-center py-5 text-xs">
+        Portfólio gerado por{" "}
+        <a href="/" className="hover:text-slate-300 transition-colors underline underline-offset-2">
+          Dev Business Assistant
+        </a>
+      </footer>
     </div>
   );
 }
 
-function MiniTimelineItem({ item }: { item: TimelineItem }) {
-  const dot = TYPE_DOT[item.type] ?? "bg-muted";
-  const start = new Date(item.start_date).toLocaleDateString("pt-BR", {
-    month: "short",
-    year: "numeric",
-  });
+// ── Sub-components ────────────────────────────────────────────
+
+function HeroStat({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="pt-4 text-center">
+      <div className="text-2xl font-bold">{value}</div>
+      <div className="text-xs text-slate-400 mt-0.5">{label}</div>
+    </div>
+  );
+}
+
+function SectionHeader({ label, title }: { label: string; title: string }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-widest text-primary">{label}</p>
+      <h2 className="text-2xl sm:text-3xl font-bold mt-1">{title}</h2>
+    </div>
+  );
+}
+
+function SkillCard({ skill, max }: { skill: Skill; max: number }) {
+  const pct = Math.max(12, Math.round((skill.count / max) * 100));
+  return (
+    <div className="rounded-xl border bg-background p-4 space-y-3 hover:border-foreground/20 transition-colors">
+      <div className="flex items-center justify-between gap-2">
+        <p className="font-semibold text-sm truncate">{skill.name}</p>
+        <span className="text-xs text-muted-foreground shrink-0">{skill.count}</span>
+      </div>
+      <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+        <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {skill.count} {skill.count === 1 ? "repositório" : "repositórios"}
+      </p>
+    </div>
+  );
+}
+
+function RepoCard({ repo }: { repo: FeaturedRepo }) {
+  const langColor = LANG_COLORS[repo.language ?? ""] ?? "bg-slate-400";
+  return (
+    <a
+      href={repo.html_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group flex flex-col rounded-xl border bg-card p-5 space-y-3 hover:border-foreground/30 hover:shadow-md transition-all"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <span className="font-semibold text-sm leading-tight group-hover:underline">
+          {repo.name}
+        </span>
+        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+      </div>
+      {repo.description && (
+        <p className="text-xs text-muted-foreground line-clamp-2 flex-1">{repo.description}</p>
+      )}
+      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        {repo.language && (
+          <span className="flex items-center gap-1.5">
+            <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${langColor}`} />
+            {repo.language}
+          </span>
+        )}
+        {repo.stargazers_count > 0 && (
+          <span className="flex items-center gap-1">
+            <Star className="h-3 w-3" />
+            {repo.stargazers_count}
+          </span>
+        )}
+      </div>
+    </a>
+  );
+}
+
+function TimelineCard({ item }: { item: TimelineItem }) {
+  const meta = TYPE_META[item.type] ?? { label: item.type, icon: "📌", dot: "bg-muted-foreground", pill: "bg-muted text-muted-foreground" };
+  const start = new Date(item.start_date + "T00:00:00").toLocaleDateString("pt-BR", { month: "short", year: "numeric" });
   const end = item.current
     ? "presente"
     : item.end_date
-    ? new Date(item.end_date).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })
+    ? new Date(item.end_date + "T00:00:00").toLocaleDateString("pt-BR", { month: "short", year: "numeric" })
     : null;
 
   return (
-    <div className="relative pl-9">
-      <div className={`absolute left-0 top-1 h-6 w-6 rounded-full ${dot} flex items-center justify-center`}>
-        <span className="text-[10px] text-white font-bold">{TYPE_LABELS[item.type]?.[0]}</span>
+    <div className="relative pl-14">
+      <div className={`absolute left-0 top-1 h-10 w-10 rounded-full ${meta.dot} flex items-center justify-center text-base shadow-sm`}>
+        {meta.icon}
       </div>
-      <div>
-        <p className="text-sm font-medium leading-tight">{item.title}</p>
-        {item.institution && (
-          <p className="text-xs text-muted-foreground">{item.institution}</p>
+      <div className="rounded-xl border bg-background p-4 space-y-2">
+        <div className="flex items-start justify-between gap-2 flex-wrap">
+          <div className="space-y-0.5">
+            <span className={`inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${meta.pill}`}>
+              {meta.label}
+            </span>
+            <h3 className="font-semibold text-sm leading-tight">{item.title}</h3>
+            {item.institution && (
+              <p className="text-xs text-muted-foreground">{item.institution}</p>
+            )}
+          </div>
+          <div className="text-xs text-muted-foreground flex items-center gap-1 shrink-0 pt-0.5">
+            <Calendar className="h-3 w-3" />
+            {start}{end ? ` → ${end}` : ""}
+            {item.current && (
+              <span className="ml-1 text-green-600 dark:text-green-400 font-medium">(atual)</span>
+            )}
+          </div>
+        </div>
+        {item.description && (
+          <p className="text-xs text-muted-foreground leading-relaxed border-t pt-2">
+            {item.description}
+          </p>
         )}
-        <p className="text-xs text-muted-foreground mt-0.5">
-          {start}{end ? ` → ${end}` : ""}
-        </p>
+        {item.repo_url && (
+          <a
+            href={item.repo_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+          >
+            <ExternalLink className="h-3 w-3" />
+            {item.repo_name ?? "Ver repositório"}
+          </a>
+        )}
       </div>
     </div>
-  );
-}
-
-function SkillBadge({ skill }: { skill: Skill }) {
-  const size =
-    skill.count >= 10 ? "text-base px-3 py-1" : "text-sm px-2.5 py-0.5";
-  return (
-    <Badge variant="secondary" className={size}>
-      {skill.name}
-      <span className="ml-1.5 text-muted-foreground text-xs">{skill.count}</span>
-    </Badge>
   );
 }
 
@@ -292,22 +514,31 @@ function PostCard({ post }: { post: Post }) {
     month: "short",
     year: "numeric",
   });
-
   return (
-    <div className="rounded-lg border bg-card p-5 space-y-3">
-      <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1.5">
-          <MessageSquare className="h-3.5 w-3.5" />
-          {post.repo_name ?? "Standalone"}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <Calendar className="h-3.5 w-3.5" />
+    <div className="rounded-xl border bg-card p-5 space-y-3 flex flex-col">
+      <div className="flex items-center justify-between gap-2">
+        <Badge variant={post.tone === "business" ? "default" : "secondary"} className="text-[10px]">
+          {post.tone === "business" ? "Negócio" : "Técnico"}
+        </Badge>
+        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+          <Calendar className="h-3 w-3" />
           {date}
         </span>
       </div>
-      <p className="text-sm leading-relaxed whitespace-pre-wrap line-clamp-6">
+      {post.repo_name && (
+        <p className="text-xs font-medium text-muted-foreground">— {post.repo_name}</p>
+      )}
+      <p className="text-sm leading-relaxed whitespace-pre-wrap line-clamp-8 flex-1">
         {post.content}
       </p>
     </div>
+  );
+}
+
+function LinkedInIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+    </svg>
   );
 }

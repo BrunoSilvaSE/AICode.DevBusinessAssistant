@@ -126,6 +126,12 @@ export default function DashboardPage() {
               href="/repos-destaque"
               soon={false}
             />
+            <DashCard
+              title="Editar Perfil"
+              description="Adicione 'Sobre Mim', título profissional, localização e LinkedIn."
+              href="/editar-perfil"
+              soon={false}
+            />
           </div>
 
           <div className="rounded-lg border bg-card p-6">
