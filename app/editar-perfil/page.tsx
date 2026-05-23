@@ -116,6 +116,7 @@ export default function EditarPerfilPage() {
 
   const isHidden = (name: string) => form.hidden_skills.includes(name);
 
+  const [bioError, setBioError] = useState<string | null>(null);
   const { completion: bioCompletion, complete: completeBio, isLoading: bioGenerating } = useCompletion({
     api: "/api/generate-bio",
     streamProtocol: "text",
@@ -123,6 +124,7 @@ export default function EditarPerfilPage() {
     onFinish: (_, completion) => {
       if (completion) field("bio_long", completion);
     },
+    onError: () => setBioError("Adicione título ou tecnologias ao perfil antes de gerar a bio."),
   });
 
   if (loading) {
@@ -205,7 +207,7 @@ export default function EditarPerfilPage() {
                 variant="outline"
                 size="sm"
                 disabled={bioGenerating || !jwt}
-                onClick={() => completeBio("")}
+                onClick={() => { setBioError(null); completeBio(""); }}
                 className="flex items-center gap-1.5 text-xs"
               >
                 {bioGenerating ? (
@@ -216,6 +218,9 @@ export default function EditarPerfilPage() {
               </Button>
               <p className="text-xs text-muted-foreground">{form.bio_long.length}/3000</p>
             </div>
+            {bioError && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">{bioError}</p>
+            )}
           </FormField>
 
           <FormField label="Localização" hint="Ex: Recife, PE · Brasil">

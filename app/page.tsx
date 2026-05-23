@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { GitHubIcon } from "@/components/icons/github";
-import { Zap, Users, TrendingUp } from "lucide-react";
+import { Zap, Users, TrendingUp, GitBranch, Sparkles, BarChart2 } from "lucide-react";
 
 export default function LandingPage() {
   return (
@@ -44,32 +44,32 @@ export default function LandingPage() {
           <FeatureCard
             icon={<Zap className="h-5 w-5" />}
             title="Portfólio público"
-            description="URL pública /u/seu-usuario com hero, Skill Tree, linha do tempo e posts gerados."
+            description="URL /u/seu-usuario com hero, Skill Tree, linha do tempo, formulário de contato e posts."
           />
           <FeatureCard
             icon={<TrendingUp className="h-5 w-5" />}
             title="Post LinkedIn em 1 clique"
-            description="IA traduz seu trabalho técnico em linguagem de negócio ou técnica para o LinkedIn."
+            description="IA traduz seu trabalho técnico em linguagem de negócio ou técnica. Compartilhe direto no LinkedIn."
           />
           <FeatureCard
             icon={<Users className="h-5 w-5" />}
             title="Skill Tree verificável"
-            description="Skills inferidas do seu código real — não auto-declaração."
+            description="Skills inferidas do código real — não auto-declaração. Filtre repos por tecnologia."
           />
           <FeatureCard
-            icon={<Zap className="h-5 w-5" />}
-            title="Linha do Tempo"
-            description="Adicione formação, bootcamps e experiências. Vincule repositórios open source."
+            icon={<GitBranch className="h-5 w-5" />}
+            title="Diagrama de Arquitetura"
+            description="IA gera um diagrama Mermaid da arquitetura de qualquer repositório e salva no portfólio."
           />
           <FeatureCard
-            icon={<TrendingUp className="h-5 w-5" />}
-            title="Auto-README"
-            description="IA gera um README.md profissional para qualquer repositório em segundos."
+            icon={<Sparkles className="h-5 w-5" />}
+            title="Bio e README por IA"
+            description="Gere uma bio profissional e um README completo baseados no contexto real dos seus projetos."
           />
           <FeatureCard
-            icon={<Users className="h-5 w-5" />}
-            title="Repos em Destaque"
-            description="Escolha até 3 projetos para aparecer no topo do seu portfólio público."
+            icon={<BarChart2 className="h-5 w-5" />}
+            title="Análise de Perfil por IA"
+            description="Score 0–100, pontos fortes, melhorias e dica de ação para potencializar sua presença profissional."
           />
         </div>
       </main>

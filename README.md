@@ -9,16 +9,21 @@ Construído 100% com IA (Vibe Coding) como trabalho da disciplina **IA para não
 | Feature | Rota |
 |---|---|
 | Login com GitHub OAuth | `/login` |
-| Dashboard com sync automático de skills | `/dashboard` |
+| Dashboard com análise de perfil por IA | `/dashboard` |
 | Explorador de repositórios públicos | `/repositorios` |
-| Gerador de post LinkedIn (tom business ou técnico) | `/repositorios/[owner]/[name]` |
+| Gerar post LinkedIn (tom business ou técnico) | `/repositorios/[owner]/[name]` |
 | Auto-README gerado por IA | `/repositorios/[owner]/[name]` |
+| Diagrama de arquitetura Mermaid | `/repositorios/[owner]/[name]` |
+| Compartilhar post no LinkedIn (1 clique) | `/repositorios/[owner]/[name]` |
 | Gerador de post standalone (texto livre) | `/gerador` |
 | Perfil privado com Skill Tree e histórico | `/perfil` |
 | Portfólio público por username | `/u/[username]` |
+| Bio profissional gerada por IA | `/editar-perfil` |
 | Linha do tempo completa | `/u/[username]/timeline` |
 | Editor de linha do tempo | `/timeline` |
-| Seleção de repos em destaque (até 3) | `/repos-destaque` |
+| Seleção de repos em destaque com cover | `/repos-destaque` |
+| Formulário de contato no portfólio | `/u/[username]` |
+| Inbox de mensagens no dashboard | `/dashboard` |
 
 ## Stack
 
@@ -41,7 +46,7 @@ npm install
 
 # 2. Configurar variáveis de ambiente
 cp .env.example .env.local
-# Preencher: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, GROQ_API_KEY
+# Preencher: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, GROQ_API_KEY, SUPABASE_SERVICE_ROLE_KEY
 
 # 3. Rodar os testes
 npm test
@@ -56,7 +61,9 @@ Rodar as migrations em `/supabase/migrations/` na ordem numérica no Supabase SQ
 
 ## Metodologia
 
-Desenvolvido com TDD (Red → Green → Refactor) e ciclos de pair programming com IA. O relato completo da jornada está em [`docs/JORNADA.md`](./docs/JORNADA.md).
+Desenvolvido com TDD (Red → Green → Refactor) e ciclos de pair programming com IA.
+73 testes automatizados cobrindo todas as rotas de API principais.
+O relato completo da jornada está em [`docs/JORNADA.md`](./docs/JORNADA.md).
 
 ---
 Disciplina: IA para não programadores — Maio/2026
