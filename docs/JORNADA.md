@@ -228,6 +228,29 @@ O teste do Dashboard falhando no último minuto por causa de um import esquecido
 
 **Marco do dia atingido:** entrega finalizada com 100% dos requisitos do Núcleo Apresentável.
 
+### Extra (segunda sessão autônoma — Dia 4)
+
+O usuário autorizou uma segunda sessão autônoma na tarde/noite do Dia 4 para continuar o polimento além do escopo planejado.
+
+**Features entregues nesta sessão:**
+
+**OG / Twitter Meta Tags** — `generateMetadata()` nas páginas `/u/[username]` e `/u/[username]/p/[repo]`. Agora o portfólio de cada dev e cada página de projeto têm Open Graph completo (título, descrição, imagem de capa). Compartilhar no WhatsApp/Telegram/Slack gera preview rico automaticamente.
+
+**GitHub Stats no hero do portfólio** — A função `fetchPublicProfile` agora chama `api.github.com/users/{username}` (endpoint público, sem token) em paralelo com o Supabase. Resultado: "42 repositórios · 15 seguidores · 8 tecnologias · 3 projetos" visíveis no hero de cada portfólio.
+
+**Search + filtro de linguagem nos repositórios** — Página `/repositorios` ganhou input de busca com ícone de X para limpar e pills clicáveis por linguagem (toggle ativo/inativo). Filtragem 100% client-side sobre dados já carregados — zero chamadas adicionais à API.
+
+**Portfolio share button no dashboard** — Botão "Compartilhar portfólio" na seção "Conta conectada" copia a URL completa (`/u/{username}`) para o clipboard com feedback visual de "Copiado!" por 2 segundos.
+
+**Framework skills drill-down corrigido** — Skills como "React" e "Next.js" são detectadas via `package.json`, não pelo campo `language` da API do GitHub. Antes, clicar nelas abria um painel vazio. Agora mostra "Detectado por análise de package.json / arquivos de dependências" com link para o GitHub do usuário.
+
+**O que tornou possível a segunda sessão autônoma:**
+- Os padrões do projeto estavam consolidados — novos componentes seguiram os existentes sem precisar redefinir convenções
+- O MCP do Supabase evitou qualquer intervenção manual no banco
+- TypeScript strict + `tsc --noEmit` como verificação rápida após cada mudança
+
+**6 commits adicionais. Deploy automaticamente no Vercel via push.**
+
 ---
 
 ## 🔍 Padrões que Descobri ao Longo dos 4 Dias
