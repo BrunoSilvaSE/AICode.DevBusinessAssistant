@@ -12,6 +12,8 @@ type ProfileForm = {
   bio_long: string;
   location: string;
   linkedin_url: string;
+  whatsapp: string;
+  instagram_url: string;
 };
 
 export default function EditarPerfilPage() {
@@ -27,6 +29,8 @@ export default function EditarPerfilPage() {
     bio_long: "",
     location: "",
     linkedin_url: "",
+    whatsapp: "",
+    instagram_url: "",
   });
 
   useEffect(() => {
@@ -50,6 +54,8 @@ export default function EditarPerfilPage() {
           bio_long: profile.bio_long ?? "",
           location: profile.location ?? "",
           linkedin_url: profile.linkedin_url ?? "",
+          whatsapp: profile.whatsapp ?? "",
+          instagram_url: profile.instagram_url ?? "",
         });
       }
       setLoading(false);
@@ -166,6 +172,31 @@ export default function EditarPerfilPage() {
               value={form.linkedin_url}
               onChange={(e) => field("linkedin_url", e.target.value)}
               placeholder="https://linkedin.com/in/seu-usuario"
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </FormField>
+
+          <FormField label="WhatsApp" hint="Número com DDI e DDD, sem espaços ou símbolos (ex: 5581999999999)">
+            <div className="flex">
+              <span className="flex items-center px-3 rounded-l-md border border-r-0 bg-muted text-muted-foreground text-sm">
+                +
+              </span>
+              <input
+                type="tel"
+                value={form.whatsapp}
+                onChange={(e) => field("whatsapp", e.target.value.replace(/\D/g, ""))}
+                placeholder="5581999999999"
+                className="flex-1 rounded-r-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+          </FormField>
+
+          <FormField label="Instagram" hint="URL do seu perfil no Instagram (opcional)">
+            <input
+              type="url"
+              value={form.instagram_url}
+              onChange={(e) => field("instagram_url", e.target.value)}
+              placeholder="https://instagram.com/seu-usuario"
               className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </FormField>

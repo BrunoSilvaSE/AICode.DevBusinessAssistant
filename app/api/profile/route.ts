@@ -11,6 +11,8 @@ const ProfileUpdateSchema = z.object({
   role_title: z.string().max(100).nullable().optional(),
   linkedin_url: z.string().nullable().optional(),
   location: z.string().max(100).nullable().optional(),
+  whatsapp: z.string().max(20).nullable().optional(),
+  instagram_url: z.string().nullable().optional(),
 });
 
 export async function GET(req: Request) {
@@ -23,7 +25,7 @@ export async function GET(req: Request) {
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("bio_long, role_title, linkedin_url, location")
+    .select("bio_long, role_title, linkedin_url, location, whatsapp, instagram_url")
     .eq("user_id", user.id)
     .single();
 
@@ -50,6 +52,8 @@ export async function PATCH(req: Request) {
   if ("role_title" in parsed.data) updates.role_title = parsed.data.role_title ?? null;
   if ("linkedin_url" in parsed.data) updates.linkedin_url = parsed.data.linkedin_url || null;
   if ("location" in parsed.data) updates.location = parsed.data.location ?? null;
+  if ("whatsapp" in parsed.data) updates.whatsapp = parsed.data.whatsapp || null;
+  if ("instagram_url" in parsed.data) updates.instagram_url = parsed.data.instagram_url || null;
 
   const { error } = await supabase
     .from("profiles")
