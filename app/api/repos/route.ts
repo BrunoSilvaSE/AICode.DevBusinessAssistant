@@ -26,6 +26,7 @@ export async function GET(req: Request) {
     repos.map((r: {
       id: number;
       name: string;
+      full_name: string;
       description: string | null;
       language: string | null;
       stargazers_count: number;
@@ -35,11 +36,14 @@ export async function GET(req: Request) {
     }) => ({
       id: r.id,
       name: r.name,
+      full_name: r.full_name,
       description: r.description,
       language: r.language,
       stars: r.stargazers_count,
+      stargazers_count: r.stargazers_count,
       updatedAt: r.updated_at,
       url: r.html_url,
+      html_url: r.html_url,
       owner: r.owner.login,
     }))
   );

@@ -54,15 +54,27 @@ describe("PUT /api/featured-repos", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns 400 when repos exceed 3", async () => {
+  it("returns 400 when repos is not an array", async () => {
     const res = await PUT(
       new Request("http://localhost/api/featured-repos", {
         method: "PUT",
         headers: { Authorization: "Bearer jwt", "Content-Type": "application/json" },
-        body: JSON.stringify({ repos: [1, 2, 3, 4] }),
+        body: JSON.stringify({ repos: "invalid" }),
       })
     );
     expect(res.status).toBe(400);
+  });
+
+  it("accepts more than 3 repos", async () => {
+    const repo = { name: "r", full_name: "u/r", description: null, html_url: "https://github.com/u/r", language: "JS", stargazers_count: 0 };
+    const res = await PUT(
+      new Request("http://localhost/api/featured-repos", {
+        method: "PUT",
+        headers: { Authorization: "Bearer jwt", "Content-Type": "application/json" },
+        body: JSON.stringify({ repos: [repo, repo, repo, repo, repo] }),
+      })
+    );
+    expect(res.status).toBe(200);
   });
 
   it("saves repos and returns 200", async () => {

@@ -40,8 +40,8 @@ export async function PUT(req: Request) {
   const body = await req.json().catch(() => ({}));
   const { repos } = body as { repos?: FeaturedRepo[] };
 
-  if (!Array.isArray(repos) || repos.length > 3) {
-    return Response.json({ error: "Máximo de 3 repositórios permitido" }, { status: 400 });
+  if (!Array.isArray(repos)) {
+    return Response.json({ error: "Lista de repositórios inválida" }, { status: 400 });
   }
 
   const supabase = createAuthedServerClient(jwt);

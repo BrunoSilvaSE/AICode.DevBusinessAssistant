@@ -8,6 +8,7 @@ import { ArrowLeft, Star, Loader2, Check, X, ImageIcon, Upload } from "lucide-re
 import Link from "next/link";
 
 type Repo = {
+  id: number;
   name: string;
   full_name: string;
   description: string | null;
@@ -43,22 +44,30 @@ export default function ReposDestaquePage() {
           fetch("/api/featured-repos", { headers: { Authorization: `Bearer ${session.access_token}` } }),
         ]);
 
-        if (reposRes.ok) {
-          const all: Repo[] = await reposRes.json();
-          setRepos(Array.isArray(all) ? all : []);
-        }
-        if (featuredRes.ok) setSelected(await featuredRes.json());
+        const allRepos: Repo[] = reposRes.ok ? await reposRes.json() : [];
+        const featured: Repo[] = featuredRes.ok ? await featuredRes.json() : [];
+
+        setRepos(Array.isArray(allRepos) ? allRepos : []);
+
+        // Merge saved cover_urls back into the selection
+        setSelected(
+          featured.map((f) => {
+            const live = allRepos.find((r) => r.full_name === f.full_name);
+            return live ? { ...live, cover_url: f.cover_url } : f;
+          })
+        );
+
         setLoading(false);
       });
   }, [router]);
 
   function toggle(repo: Repo) {
-    setSelected((prev) => {
-      const exists = prev.some((r) => r.full_name === repo.full_name);
-      if (exists) return prev.filter((r) => r.full_name !== repo.full_name);
-      if (prev.length >= 3) return prev;
-      return [...prev, repo];
-    });
+    const exists = selected.some((r) => r.full_name === repo.full_name);
+    if (exists) {
+      setSelected((prev) => prev.filter((r) => r.full_name !== repo.full_name));
+    } else {
+      setSelected((prev) => [...prev, { ...repo, cover_url: null }]);
+    }
     setSaved(false);
   }
 
@@ -112,7 +121,8 @@ export default function ReposDestaquePage() {
     setSaved(true);
   }
 
-  const isSelected = (repo: Repo) => selected.some((r) => r.full_name === repo.full_name);
+  const isSelected = (repo: Repo) =>
+    selected.some((r) => r.full_name === repo.full_name);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -128,7 +138,6 @@ export default function ReposDestaquePage() {
         </div>
       </header>
 
-      {/* Hidden file input */}
       <input
         ref={fileInputRef}
         type="file"
@@ -143,8 +152,8 @@ export default function ReposDestaquePage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Repos em Destaque</h1>
             <p className="text-muted-foreground text-sm mt-1">
-              Selecione até 3 repositórios e adicione uma capa para cada um.{" "}
-              <span className="font-medium text-foreground">{selected.length}/3</span>
+              Selecione quantos repositórios quiser para o portfólio.{" "}
+              <span className="font-medium text-foreground">{selected.length} selecionado{selected.length !== 1 ? "s" : ""}</span>
             </p>
           </div>
           <Button onClick={handleSave} disabled={saving || selected.length === 0} size="sm">
@@ -158,38 +167,33 @@ export default function ReposDestaquePage() {
           </Button>
         </div>
 
-        {/* Selected repos with cover upload */}
-        <section className="space-y-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Projetos selecionados
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {selected.map((repo) => (
-              <SelectedCard
-                key={repo.full_name}
-                repo={repo}
-                uploading={uploading === repo.full_name}
-                onUpload={() => triggerUpload(repo.full_name)}
-                onRemoveCover={() => removeCover(repo.full_name)}
-                onDeselect={() => toggle(repo)}
-              />
-            ))}
-            {Array.from({ length: 3 - selected.length }).map((_, i) => (
-              <div
-                key={i}
-                className="rounded-xl border border-dashed flex items-center justify-center py-10 text-muted-foreground/40 text-sm"
-              >
-                Slot {selected.length + i + 1}
-              </div>
-            ))}
-          </div>
-        </section>
+        {/* Selected repos with cover cards */}
+        {selected.length > 0 && (
+          <section className="space-y-3">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Selecionados — adicione uma capa a cada projeto
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {selected.map((repo) => (
+                <SelectedCard
+                  key={repo.full_name}
+                  repo={repo}
+                  uploading={uploading === repo.full_name}
+                  onUpload={() => triggerUpload(repo.full_name)}
+                  onRemoveCover={() => removeCover(repo.full_name)}
+                  onDeselect={() => toggle(repo)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Repo list */}
         <section className="space-y-3">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Todos os repositórios
           </h2>
+
           {loading ? (
             <div className="flex justify-center py-16">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -199,35 +203,32 @@ export default function ReposDestaquePage() {
               Nenhum repositório público encontrado.
             </p>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {repos.map((repo) => {
                 const active = isSelected(repo);
-                const disabled = !active && selected.length >= 3;
                 return (
                   <button
                     key={repo.full_name}
-                    onClick={() => !disabled && toggle(repo)}
-                    className={`w-full text-left rounded-lg border p-4 transition-colors ${
+                    onClick={() => toggle(repo)}
+                    className={`w-full text-left rounded-lg border p-3.5 transition-colors ${
                       active
                         ? "border-foreground bg-foreground/5"
-                        : disabled
-                        ? "opacity-40 cursor-not-allowed"
                         : "hover:border-foreground/30 hover:bg-accent/20"
                     }`}
                   >
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-center gap-3">
                       <div
-                        className={`mt-0.5 h-5 w-5 rounded border-2 shrink-0 flex items-center justify-center ${
+                        className={`h-5 w-5 rounded border-2 shrink-0 flex items-center justify-center transition-colors ${
                           active ? "border-foreground bg-foreground" : "border-muted-foreground"
                         }`}
                       >
                         {active && <Check className="h-3 w-3 text-background" />}
                       </div>
-                      <div className="flex-1 min-w-0 space-y-0.5">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium text-sm">{repo.name}</span>
+                      <div className="flex-1 min-w-0 flex items-center gap-3">
+                        <span className="font-medium text-sm truncate">{repo.name}</span>
+                        <div className="flex items-center gap-2 shrink-0 ml-auto">
                           {repo.language && (
-                            <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                            <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded hidden sm:block">
                               {repo.language}
                             </span>
                           )}
@@ -238,13 +239,13 @@ export default function ReposDestaquePage() {
                             </span>
                           )}
                         </div>
-                        {repo.description && (
-                          <p className="text-xs text-muted-foreground line-clamp-1">
-                            {repo.description}
-                          </p>
-                        )}
                       </div>
                     </div>
+                    {repo.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-1 mt-1 pl-8">
+                        {repo.description}
+                      </p>
+                    )}
                   </button>
                 );
               })}
@@ -271,7 +272,7 @@ function SelectedCard({
 }) {
   return (
     <div className="rounded-xl border bg-card overflow-hidden">
-      {/* Cover */}
+      {/* Cover area */}
       <div className="relative aspect-video bg-muted group">
         {repo.cover_url ? (
           <>
@@ -280,7 +281,6 @@ function SelectedCard({
               alt={repo.name}
               className="w-full h-full object-cover"
             />
-            {/* Hover overlay */}
             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
               <button
                 onClick={onUpload}
@@ -313,14 +313,14 @@ function SelectedCard({
               <>
                 <ImageIcon className="h-5 w-5" />
                 <span className="text-xs font-medium">Adicionar capa</span>
-                <span className="text-[10px] text-muted-foreground">PNG · JPG · WebP · max 2MB</span>
+                <span className="text-[10px] text-muted-foreground/70">PNG · JPG · WebP</span>
               </>
             )}
           </button>
         )}
       </div>
 
-      {/* Info */}
+      {/* Info row */}
       <div className="px-3 py-2.5 flex items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="font-semibold text-sm truncate">{repo.name}</p>
@@ -330,7 +330,7 @@ function SelectedCard({
         </div>
         <button
           onClick={onDeselect}
-          title="Remover seleção"
+          title="Remover"
           className="h-6 w-6 shrink-0 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
         >
           <X className="h-3.5 w-3.5" />
