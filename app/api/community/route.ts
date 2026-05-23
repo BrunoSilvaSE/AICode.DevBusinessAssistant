@@ -12,6 +12,8 @@ const CreatePostSchema = z.object({
   title: z.string().max(120).optional(),
   repo_name: z.string().optional(),
   tone: z.enum(["business", "technical", "free"]).default("free"),
+  tags: z.array(z.string().max(30)).max(5).default([]),
+  category: z.enum(["discussion", "showcase"]).default("discussion"),
 });
 
 export async function GET(req: Request) {
@@ -26,12 +28,17 @@ export async function GET(req: Request) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
+  const tag = searchParams.get("tag");
+  const category = searchParams.get("category");
+
   let query = supabase
     .from("community_posts")
-    .select("id, username, full_name, avatar_url, title, content, repo_name, tone, likes_count, comments_count, created_at")
+    .select("id, username, full_name, avatar_url, title, content, repo_name, tone, tags, category, likes_count, comments_count, created_at")
     .limit(limit + 1);
 
   if (tone) query = query.eq("tone", tone);
+  if (category) query = query.eq("category", category);
+  if (tag) query = query.contains("tags", [tag]);
 
   if (sort === "popular") {
     query = query.order("likes_count", { ascending: false }).order("created_at", { ascending: false });
@@ -78,7 +85,7 @@ export async function POST(req: Request) {
     return Response.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const { content, title, repo_name, tone } = parsed.data;
+  const { content, title, repo_name, tone, tags, category } = parsed.data;
 
   const { data, error } = await supabase
     .from("community_posts")
@@ -91,6 +98,8 @@ export async function POST(req: Request) {
       title: title || null,
       repo_name: repo_name || null,
       tone,
+      tags,
+      category,
     })
     .select("id")
     .single();

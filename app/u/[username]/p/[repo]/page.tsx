@@ -2,13 +2,25 @@ import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowLeft, ExternalLink, Star, GitBranch } from "lucide-react";
+import { ArrowLeft, ExternalLink, Star, GitBranch, Heart, MessageSquare, PenSquare } from "lucide-react";
 import { MermaidDiagram } from "@/components/MermaidDiagram";
 import { CopyLinkedInButton } from "@/components/CopyLinkedInButton";
 import { Badge } from "@/components/ui/badge";
 
 type Skill = { name: string; count: number };
 type Post = { id: string; repo_name: string; tone: string; content: string; created_at: string };
+type CommunityPost = {
+  id: string;
+  username: string;
+  full_name: string | null;
+  title: string | null;
+  content: string;
+  tone: string | null;
+  tags: string[];
+  likes_count: number;
+  comments_count: number;
+  created_at: string;
+};
 type FeaturedRepo = {
   name: string;
   full_name: string;
@@ -50,18 +62,27 @@ async function fetchProjectData(username: string, repoName: string) {
   );
   if (!repo) return null;
 
-  const { data: posts } = await supabase
-    .from("posts")
-    .select("id, repo_name, tone, content, created_at")
-    .eq("user_id", (profile as Profile & { user_id: string }).user_id)
-    .eq("repo_name", repoName)
-    .order("created_at", { ascending: false })
-    .limit(4);
+  const [postsResult, communityResult] = await Promise.all([
+    supabase
+      .from("posts")
+      .select("id, repo_name, tone, content, created_at")
+      .eq("user_id", (profile as Profile & { user_id: string }).user_id)
+      .eq("repo_name", repoName)
+      .order("created_at", { ascending: false })
+      .limit(4),
+    supabase
+      .from("community_posts")
+      .select("id, username, full_name, title, content, tone, tags, likes_count, comments_count, created_at")
+      .eq("repo_name", repoName)
+      .order("likes_count", { ascending: false })
+      .limit(6),
+  ]);
 
   return {
     profile: profile as Profile & { user_id: string },
     repo,
-    posts: (posts ?? []) as Post[],
+    posts: (postsResult.data ?? []) as Post[],
+    communityPosts: (communityResult.data ?? []) as CommunityPost[],
   };
 }
 
@@ -112,7 +133,7 @@ export default async function ProjectPage({
   const data = await fetchProjectData(username, repoName);
   if (!data) notFound();
 
-  const { profile, repo, posts } = data;
+  const { profile, repo, posts, communityPosts } = data;
   const displayName = profile.full_name ?? profile.username;
   const langColor = LANG_COLORS[repo.language ?? ""] ?? "bg-slate-400";
 
@@ -183,15 +204,24 @@ export default async function ProjectPage({
               </p>
             )}
 
-            <a
-              href={repo.html_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border hover:border-foreground/40 text-sm font-medium transition-colors"
-            >
-              <ExternalLink className="h-4 w-4" />
-              Ver no GitHub
-            </a>
+            <div className="flex flex-wrap items-center gap-2">
+              <a
+                href={repo.html_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border hover:border-foreground/40 text-sm font-medium transition-colors"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Ver no GitHub
+              </a>
+              <Link
+                href={`/comunidade/novo?repo=${encodeURIComponent(repo.name)}&category=showcase&tone=technical`}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-primary/40 text-primary hover:bg-primary/10 text-sm font-medium transition-colors"
+              >
+                <PenSquare className="h-4 w-4" />
+                Publicar no Showcase
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -203,6 +233,48 @@ export default async function ProjectPage({
               Arquitetura
             </h2>
             <MermaidDiagram chart={repo.diagram_mermaid} />
+          </section>
+        )}
+
+        {/* Community Showcase posts */}
+        {communityPosts.length > 0 && (
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-primary" />
+                Na Comunidade
+              </h2>
+              <Link
+                href="/comunidade"
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Ver feed →
+              </Link>
+            </div>
+            <div className="space-y-3">
+              {communityPosts.map((cp) => (
+                <Link
+                  key={cp.id}
+                  href={`/comunidade/${cp.id}`}
+                  className="group flex flex-col rounded-xl border bg-card p-4 space-y-2 hover:border-foreground/30 transition-colors"
+                >
+                  {cp.title && (
+                    <p className="text-sm font-semibold group-hover:underline leading-snug">{cp.title}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
+                    {cp.content}
+                  </p>
+                  <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                    <span>@{cp.username}</span>
+                    <span className="flex items-center gap-1"><Heart className="h-3 w-3" />{cp.likes_count}</span>
+                    <span className="flex items-center gap-1"><MessageSquare className="h-3 w-3" />{cp.comments_count}</span>
+                    {cp.tags?.slice(0, 3).map((tag) => (
+                      <span key={tag} className="px-1.5 py-0.5 rounded-full bg-muted font-mono">{tag}</span>
+                    ))}
+                  </div>
+                </Link>
+              ))}
+            </div>
           </section>
         )}
 

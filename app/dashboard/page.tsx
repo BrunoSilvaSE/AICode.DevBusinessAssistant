@@ -8,6 +8,7 @@ import type { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { GitHubIcon } from "@/components/icons/github";
 import { DashboardInbox } from "@/components/DashboardInbox";
+import { NotificationBell } from "@/components/NotificationBell";
 import { ProfileAnalysisCard } from "@/components/ProfileAnalysisCard";
 import {
   Copy, Check, ExternalLink, Loader2,
@@ -69,6 +70,7 @@ export default function DashboardPage() {
         <div className="max-w-5xl mx-auto px-6 py-3.5 flex items-center justify-between">
           <span className="font-bold text-sm tracking-tight">Dev Business Assistant</span>
           <div className="flex items-center gap-2">
+            {jwt && <NotificationBell jwt={jwt} />}
             {jwt && <DashboardInbox jwt={jwt} />}
             {avatarUrl ? (
               <img src={avatarUrl} alt={name as string} className="h-8 w-8 rounded-full ring-2 ring-border" />

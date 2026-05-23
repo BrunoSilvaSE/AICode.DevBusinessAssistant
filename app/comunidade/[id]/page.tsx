@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { createBrowserClient } from "@/lib/supabase/client";
-import { ArrowLeft, Heart, Loader2, ExternalLink, MessageSquare, Send, Trash2 } from "lucide-react";
+import { ArrowLeft, Heart, Loader2, ExternalLink, MessageSquare, Send, Trash2, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,6 +18,8 @@ type CommunityPost = {
   content: string;
   repo_name: string | null;
   tone: "business" | "technical" | "free" | null;
+  tags: string[];
+  category: "discussion" | "showcase" | null;
   likes_count: number;
   comments_count: number;
   created_at: string;
@@ -192,6 +194,11 @@ export default function PostDetailPage() {
                 <Link href={`/u/${post.username}`} className="font-semibold hover:underline">
                   {post.full_name ?? post.username}
                 </Link>
+                {post.category === "showcase" && (
+                  <Badge className="text-[10px] gap-0.5 bg-violet-500 hover:bg-violet-600">
+                    <Layers className="h-2.5 w-2.5" />Showcase
+                  </Badge>
+                )}
                 {post.tone && post.tone !== "free" && (
                   <Badge variant="outline" className="text-[10px]">{TONE_LABELS[post.tone]}</Badge>
                 )}
@@ -207,8 +214,17 @@ export default function PostDetailPage() {
 
           {post.title && <h1 className="text-2xl font-bold tracking-tight leading-snug">{post.title}</h1>}
 
-          <div className="rounded-xl border bg-card p-6">
+          <div className="rounded-xl border bg-card p-6 space-y-4">
             <p className="text-sm leading-relaxed whitespace-pre-wrap">{post.content}</p>
+            {post.tags?.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-2 border-t">
+                {post.tags.map((tag) => (
+                  <span key={tag} className="px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium font-mono">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-4">

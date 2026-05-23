@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createBrowserClient } from "@/lib/supabase/client";
-import { ArrowLeft, Heart, MessageSquare, PenSquare, Loader2, Users, TrendingUp, Clock, Filter } from "lucide-react";
+import { ArrowLeft, Heart, MessageSquare, PenSquare, Loader2, Users, TrendingUp, Clock, Filter, Layers, Newspaper } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -16,6 +16,8 @@ type CommunityPost = {
   content: string;
   repo_name: string | null;
   tone: "business" | "technical" | "free" | null;
+  tags: string[];
+  category: "discussion" | "showcase" | null;
   likes_count: number;
   comments_count: number;
   created_at: string;
@@ -23,6 +25,7 @@ type CommunityPost = {
 
 type Sort = "recent" | "popular";
 type ToneFilter = "" | "business" | "technical" | "free";
+type CategoryFilter = "" | "discussion" | "showcase";
 
 const TONE_LABELS: Record<string, string> = {
   business: "Negócio",
@@ -62,6 +65,7 @@ export default function ComunidadePage() {
   const [liking, setLiking] = useState<Set<string>>(new Set());
   const [sort, setSort] = useState<Sort>("recent");
   const [toneFilter, setToneFilter] = useState<ToneFilter>("");
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("");
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -75,8 +79,9 @@ export default function ComunidadePage() {
     if (cursor) params.set("cursor", cursor);
     if (sort !== "recent") params.set("sort", sort);
     if (toneFilter) params.set("tone", toneFilter);
+    if (categoryFilter) params.set("category", categoryFilter);
     return `/api/community?${params.toString()}`;
-  }, [sort, toneFilter]);
+  }, [sort, toneFilter, categoryFilter]);
 
   const loadPosts = useCallback(async (cursor?: string) => {
     const res = await fetch(buildUrl(cursor));
@@ -171,6 +176,30 @@ export default function ComunidadePage() {
 
           <div className="h-4 w-px bg-border shrink-0" />
 
+          {/* Category filter */}
+          <div className="flex items-center gap-1 shrink-0">
+            {([
+              { value: "" as CategoryFilter, label: "Tudo", icon: null },
+              { value: "showcase" as CategoryFilter, label: "Showcase", icon: Layers },
+              { value: "discussion" as CategoryFilter, label: "Discussão", icon: Newspaper },
+            ]).map(({ value, label, icon: Icon }) => (
+              <button
+                key={value}
+                onClick={() => setCategoryFilter(value)}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors shrink-0 ${
+                  categoryFilter === value
+                    ? "bg-foreground text-background"
+                    : "bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {Icon && <Icon className="h-2.5 w-2.5" />}
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <div className="h-4 w-px bg-border shrink-0" />
+
           {/* Tone filter pills */}
           <div className="flex items-center gap-1.5 shrink-0">
             <Filter className="h-3 w-3 text-muted-foreground shrink-0" />
@@ -260,6 +289,11 @@ function PostCard({
               {post.full_name ?? post.username}
             </Link>
             <span className="text-xs text-muted-foreground">@{post.username}</span>
+            {post.category === "showcase" && (
+              <Badge className="text-[10px] px-1.5 py-0 h-4 gap-0.5 bg-violet-500 hover:bg-violet-600">
+                <Layers className="h-2.5 w-2.5" />Showcase
+              </Badge>
+            )}
             {post.tone && post.tone !== "free" && (
               <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
                 {TONE_LABELS[post.tone]}
@@ -286,6 +320,17 @@ function PostCard({
         <button onClick={() => setExpanded((e) => !e)} className="text-xs text-primary hover:underline">
           {expanded ? "Ver menos" : "Ver mais"}
         </button>
+      )}
+
+      {/* Tags */}
+      {post.tags?.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {post.tags.map((tag) => (
+            <span key={tag} className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium font-mono">
+              {tag}
+            </span>
+          ))}
+        </div>
       )}
 
       <div className="flex items-center gap-4 pt-1">

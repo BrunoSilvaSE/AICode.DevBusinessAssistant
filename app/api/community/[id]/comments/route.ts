@@ -61,6 +61,24 @@ export async function POST(
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
+  // Notify post author (fire-and-forget — don't block response)
+  const { data: post } = await supabase
+    .from("community_posts")
+    .select("user_id, title, content")
+    .eq("id", postId)
+    .single();
+
+  if (post && post.user_id !== user.id) {
+    await supabase.from("notifications").insert({
+      user_id: post.user_id,
+      type: "comment",
+      post_id: postId,
+      post_title: post.title ?? post.content.slice(0, 60),
+      actor_username: user.user_metadata?.user_name ?? user.email ?? "",
+      actor_avatar_url: user.user_metadata?.avatar_url ?? null,
+    });
+  }
+
   await supabase.rpc("increment_comments", { post_id: postId });
   return Response.json({ success: true }, { status: 201 });
 }
