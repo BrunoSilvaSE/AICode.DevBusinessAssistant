@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@/lib/supabase/client";
+import { useCompletion } from "@ai-sdk/react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Save, ExternalLink, CheckCircle, Plus, X, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Save, ExternalLink, CheckCircle, Plus, X, Eye, EyeOff, Sparkles, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 type Skill = { name: string; count: number };
@@ -115,6 +116,15 @@ export default function EditarPerfilPage() {
 
   const isHidden = (name: string) => form.hidden_skills.includes(name);
 
+  const { completion: bioCompletion, complete: completeBio, isLoading: bioGenerating } = useCompletion({
+    api: "/api/generate-bio",
+    streamProtocol: "text",
+    headers: jwt ? { Authorization: `Bearer ${jwt}` } : {},
+    onFinish: (_, completion) => {
+      if (completion) field("bio_long", completion);
+    },
+  });
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -174,14 +184,38 @@ export default function EditarPerfilPage() {
             label="Sobre Mim"
             hint="Apresentação profissional. Aparece na seção 'Sobre Mim' do portfólio."
           >
-            <textarea
-              value={form.bio_long}
-              onChange={(e) => field("bio_long", e.target.value)}
-              placeholder="Escreva sua apresentação aqui..."
-              rows={6}
-              className="input-base resize-none"
-            />
-            <p className="text-xs text-muted-foreground text-right">{form.bio_long.length}/3000</p>
+            <div className="relative">
+              <textarea
+                value={bioGenerating ? bioCompletion : form.bio_long}
+                onChange={(e) => field("bio_long", e.target.value)}
+                placeholder="Escreva sua apresentação aqui ou gere com IA..."
+                rows={6}
+                disabled={bioGenerating}
+                className="input-base resize-none w-full"
+              />
+              {bioGenerating && (
+                <div className="absolute inset-0 rounded-md bg-background/50 flex items-center justify-center">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-between">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={bioGenerating || !jwt}
+                onClick={() => completeBio("")}
+                className="flex items-center gap-1.5 text-xs"
+              >
+                {bioGenerating ? (
+                  <><Loader2 className="h-3.5 w-3.5 animate-spin" />Gerando...</>
+                ) : (
+                  <><Sparkles className="h-3.5 w-3.5" />Gerar com IA</>
+                )}
+              </Button>
+              <p className="text-xs text-muted-foreground">{form.bio_long.length}/3000</p>
+            </div>
           </FormField>
 
           <FormField label="Localização" hint="Ex: Recife, PE · Brasil">
