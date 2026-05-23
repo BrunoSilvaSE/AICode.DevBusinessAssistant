@@ -5,7 +5,7 @@ export async function GET(req: Request) {
   }
 
   const res = await fetch(
-    "https://api.github.com/user/repos?sort=updated&per_page=30&type=public",
+    "https://api.github.com/user/repos?sort=updated&per_page=100&type=public",
     {
       headers: {
         Authorization: `token ${githubToken}`,
