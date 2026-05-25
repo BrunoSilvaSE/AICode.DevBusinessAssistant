@@ -201,23 +201,20 @@ export default function TimelinePage() {
 
               <div className="space-y-1.5">
                 <label className="text-xs font-medium">Início *</label>
-                <input
-                  type="month"
+                <MonthYearPicker
                   value={form.start_date}
-                  onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))}
-                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                  onChange={(v) => setForm((f) => ({ ...f, start_date: v }))}
                 />
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-medium">Fim</label>
-                <input
-                  type="month"
+                <MonthYearPicker
                   value={form.end_date}
-                  onChange={(e) => setForm((f) => ({ ...f, end_date: e.target.value }))}
+                  onChange={(v) => setForm((f) => ({ ...f, end_date: v }))}
                   disabled={form.current}
-                  className="w-full rounded-md border bg-background px-3 py-2 text-sm disabled:opacity-40"
                 />
+              </div>
                 <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
                   <input
                     type="checkbox"
@@ -336,4 +333,59 @@ export default function TimelinePage() {
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("pt-BR", { month: "short", year: "numeric" });
+}
+
+const MONTHS = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
+
+function MonthYearPicker({
+  value,
+  onChange,
+  disabled = false,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+}) {
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: currentYear - 1979 }, (_, i) => currentYear - i);
+
+  const [month, year] = value ? value.split("-") : ["", ""];
+
+  function handleChange(newMonth: string, newYear: string) {
+    if (newMonth && newYear) onChange(`${newYear}-${newMonth}`);
+    else onChange("");
+  }
+
+  const selectClass = `rounded-md border bg-background px-2 py-2 text-sm flex-1 ${disabled ? "opacity-40 cursor-not-allowed" : ""}`;
+
+  return (
+    <div className="flex gap-2">
+      <select
+        value={month ?? ""}
+        onChange={(e) => handleChange(e.target.value, year ?? "")}
+        disabled={disabled}
+        className={selectClass}
+      >
+        <option value="">Mês</option>
+        {MONTHS.map((m, i) => {
+          const val = String(i + 1).padStart(2, "0");
+          return <option key={val} value={val}>{m}</option>;
+        })}
+      </select>
+      <select
+        value={year ?? ""}
+        onChange={(e) => handleChange(month ?? "", e.target.value)}
+        disabled={disabled}
+        className={selectClass}
+      >
+        <option value="">Ano</option>
+        {years.map((y) => (
+          <option key={y} value={String(y)}>{y}</option>
+        ))}
+      </select>
+    </div>
+  );
 }
