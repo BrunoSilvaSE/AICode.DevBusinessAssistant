@@ -115,9 +115,10 @@ export function DashboardInbox({ jwt }: { jwt: string }) {
               </div>
               <button
                 onClick={() => { setOpen(false); setSelected(null); }}
-                className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-foreground bg-muted hover:bg-muted/80 transition-colors border"
               >
-                <X className="h-4 w-4" />
+                <X className="h-3.5 w-3.5" />
+                Fechar
               </button>
             </div>
 
