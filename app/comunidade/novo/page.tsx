@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createBrowserClient } from "@/lib/supabase/client";
@@ -24,7 +24,7 @@ const SUGGESTED_TAGS = [
   "carreira", "arquitetura", "performance", "open-source",
 ];
 
-export default function NovoComunidadePost() {
+function NovoComunidadePostContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [jwt, setJwt] = useState<string | null>(null);
@@ -315,5 +315,17 @@ export default function NovoComunidadePost() {
         </form>
       </main>
     </div>
+  );
+}
+
+export default function NovoComunidadePost() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    }>
+      <NovoComunidadePostContent />
+    </Suspense>
   );
 }
