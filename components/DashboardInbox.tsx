@@ -94,12 +94,13 @@ export function DashboardInbox({ jwt }: { jwt: string }) {
       {/* Overlay */}
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px]"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: "rgba(0,0,0,0.15)", backdropFilter: "blur(2px)" }}
           onClick={() => { setOpen(false); setSelected(null); }}
         >
           <div
-            className="w-full max-w-4xl bg-background border rounded-2xl shadow-2xl overflow-hidden flex flex-col"
-            style={{ height: "min(85vh, 700px)" }}
+            className="w-full bg-background border rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+            style={{ maxWidth: "56rem", height: "min(85vh, 700px)" }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
