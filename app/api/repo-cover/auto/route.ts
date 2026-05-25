@@ -51,6 +51,20 @@ async function detectFrontendUrl(
   };
 }
 
+// Returns true only if the URL responds with a 2xx status (real page, not 404/error).
+async function checkUrlLive(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(url, {
+      method: "HEAD",
+      signal: AbortSignal.timeout(8000),
+      redirect: "follow",
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 // Tries multiple screenshot services. Returns ArrayBuffer or null.
 async function captureScreenshot(targetUrl: string): Promise<{ buffer: ArrayBuffer; contentType: string } | null> {
   const services = [
@@ -115,7 +129,11 @@ export async function POST(req: Request) {
   let imgData: { buffer: ArrayBuffer; contentType: string } | null = null;
 
   if (hasFrontend) {
-    imgData = await captureScreenshot(targetUrl);
+    // Validate the URL actually serves a real page before screenshotting
+    const isLive = await checkUrlLive(targetUrl);
+    if (isLive) {
+      imgData = await captureScreenshot(targetUrl);
+    }
   }
 
   // Fallback: GitHub's social preview (always works, no screenshot service needed)
