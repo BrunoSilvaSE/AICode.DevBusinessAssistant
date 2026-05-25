@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Star, Loader2, Check, X, ImageIcon, Upload } from "lucide-react";
+import { ArrowLeft, Star, Loader2, Check, X, ImageIcon, Upload, Wand2 } from "lucide-react";
 import Link from "next/link";
 
 type Repo = {
@@ -21,12 +21,15 @@ type Repo = {
 export default function ReposDestaquePage() {
   const router = useRouter();
   const [jwt, setJwt] = useState<string | null>(null);
+  const [providerToken, setProviderToken] = useState<string | null>(null);
   const [repos, setRepos] = useState<Repo[]>([]);
   const [selected, setSelected] = useState<Repo[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
+  const [autoDetecting, setAutoDetecting] = useState<string | null>(null);
+  const [autoError, setAutoError] = useState<Record<string, string>>({});
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadTarget = useRef<string | null>(null);
@@ -38,6 +41,7 @@ export default function ReposDestaquePage() {
         const session = data.session;
         if (!session?.access_token) { router.push("/login"); return; }
         setJwt(session.access_token);
+        setProviderToken(session.provider_token ?? null);
 
         const [reposRes, featuredRes] = await Promise.all([
           fetch("/api/repos", { headers: { "X-GitHub-Token": session.provider_token ?? "" } }),
@@ -107,6 +111,36 @@ export default function ReposDestaquePage() {
       prev.map((r) => r.full_name === fullName ? { ...r, cover_url: null } : r)
     );
     setSaved(false);
+  }
+
+  async function handleAutoCover(fullName: string) {
+    if (!jwt) return;
+    const [owner, repo] = fullName.split("/");
+    setAutoDetecting(fullName);
+    setAutoError((prev) => ({ ...prev, [fullName]: "" }));
+
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${jwt}`,
+      "Content-Type": "application/json",
+    };
+    if (providerToken) headers["X-GitHub-Token"] = providerToken;
+
+    const res = await fetch("/api/repo-cover/auto", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ owner, repo, full_name: fullName }),
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      setSelected((prev) =>
+        prev.map((r) => r.full_name === fullName ? { ...r, cover_url: data.url } : r)
+      );
+      setSaved(false);
+    } else {
+      setAutoError((prev) => ({ ...prev, [fullName]: data.error ?? "Erro ao detectar capa." }));
+    }
+    setAutoDetecting(null);
   }
 
   async function handleSave() {
@@ -179,9 +213,12 @@ export default function ReposDestaquePage() {
                   key={repo.full_name}
                   repo={repo}
                   uploading={uploading === repo.full_name}
+                  autoDetecting={autoDetecting === repo.full_name}
+                  autoError={autoError[repo.full_name] ?? ""}
                   onUpload={() => triggerUpload(repo.full_name)}
                   onRemoveCover={() => removeCover(repo.full_name)}
                   onDeselect={() => toggle(repo)}
+                  onAutoCover={() => handleAutoCover(repo.full_name)}
                 />
               ))}
             </div>
@@ -260,16 +297,24 @@ export default function ReposDestaquePage() {
 function SelectedCard({
   repo,
   uploading,
+  autoDetecting,
+  autoError,
   onUpload,
   onRemoveCover,
   onDeselect,
+  onAutoCover,
 }: {
   repo: Repo;
   uploading: boolean;
+  autoDetecting: boolean;
+  autoError: string;
   onUpload: () => void;
   onRemoveCover: () => void;
   onDeselect: () => void;
+  onAutoCover: () => void;
 }) {
+  const busy = uploading || autoDetecting;
+
   return (
     <div className="rounded-xl border bg-card overflow-hidden">
       {/* Cover area */}
@@ -283,15 +328,25 @@ function SelectedCard({
             />
             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
               <button
+                onClick={onAutoCover}
+                disabled={busy}
+                className="flex items-center gap-1 text-xs text-white bg-white/20 hover:bg-white/30 px-2 py-1 rounded-md transition-colors disabled:opacity-50"
+              >
+                <Wand2 className="h-3 w-3" />
+                Auto
+              </button>
+              <button
                 onClick={onUpload}
-                className="flex items-center gap-1 text-xs text-white bg-white/20 hover:bg-white/30 px-2 py-1 rounded-md transition-colors"
+                disabled={busy}
+                className="flex items-center gap-1 text-xs text-white bg-white/20 hover:bg-white/30 px-2 py-1 rounded-md transition-colors disabled:opacity-50"
               >
                 <Upload className="h-3 w-3" />
                 Trocar
               </button>
               <button
                 onClick={onRemoveCover}
-                className="flex items-center gap-1 text-xs text-white bg-white/20 hover:bg-white/30 px-2 py-1 rounded-md transition-colors"
+                disabled={busy}
+                className="flex items-center gap-1 text-xs text-white bg-white/20 hover:bg-white/30 px-2 py-1 rounded-md transition-colors disabled:opacity-50"
               >
                 <X className="h-3 w-3" />
                 Remover
@@ -299,24 +354,39 @@ function SelectedCard({
             </div>
           </>
         ) : (
-          <button
-            onClick={onUpload}
-            disabled={uploading}
-            className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
-          >
-            {uploading ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-3">
+            {autoDetecting ? (
               <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span className="text-xs">Enviando...</span>
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Detectando frontend...</span>
+              </>
+            ) : uploading ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Enviando...</span>
               </>
             ) : (
               <>
-                <ImageIcon className="h-5 w-5" />
-                <span className="text-xs font-medium">Adicionar capa</span>
-                <span className="text-[10px] text-muted-foreground/70">PNG · JPG · WebP</span>
+                <button
+                  onClick={onAutoCover}
+                  className="flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  <Wand2 className="h-3.5 w-3.5" />
+                  Auto-detectar
+                </button>
+                <button
+                  onClick={onUpload}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <ImageIcon className="h-3.5 w-3.5" />
+                  Fazer upload
+                </button>
+                {autoError && (
+                  <p className="text-[10px] text-destructive text-center leading-tight px-2">{autoError}</p>
+                )}
               </>
             )}
-          </button>
+          </div>
         )}
       </div>
 
