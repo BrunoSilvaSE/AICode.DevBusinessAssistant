@@ -203,8 +203,8 @@ export default function TimelinePage() {
                 <label className="text-xs font-medium">Início *</label>
                 <input
                   type="month"
-                  value={form.start_date.slice(0, 7)}
-                  onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value + "-01" }))}
+                  value={form.start_date ? form.start_date.slice(0, 7) : ""}
+                  onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value ? `${e.target.value}-01` : "" }))}
                   className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                 />
               </div>
@@ -213,8 +213,8 @@ export default function TimelinePage() {
                 <label className="text-xs font-medium">Fim</label>
                 <input
                   type="month"
-                  value={form.end_date.slice(0, 7)}
-                  onChange={(e) => setForm((f) => ({ ...f, end_date: e.target.value + "-01" }))}
+                  value={form.end_date ? form.end_date.slice(0, 7) : ""}
+                  onChange={(e) => setForm((f) => ({ ...f, end_date: e.target.value ? `${e.target.value}-01` : "" }))}
                   disabled={form.current}
                   className="w-full rounded-md border bg-background px-3 py-2 text-sm disabled:opacity-40"
                 />
