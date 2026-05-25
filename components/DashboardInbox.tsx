@@ -95,12 +95,12 @@ export function DashboardInbox({ jwt }: { jwt: string }) {
       {open && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ backgroundColor: "rgba(0,0,0,0.15)", backdropFilter: "blur(2px)" }}
+          style={{ backgroundColor: "rgba(0,0,0,0.08)", backdropFilter: "blur(3px)" }}
           onClick={() => { setOpen(false); setSelected(null); }}
         >
           <div
-            className="w-full bg-background border rounded-2xl shadow-2xl overflow-hidden flex flex-col"
-            style={{ maxWidth: "56rem", height: "min(85vh, 700px)" }}
+            className="bg-background border-2 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+            style={{ width: "min(95vw, 1100px)", height: "min(90vh, 800px)" }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
