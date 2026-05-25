@@ -6,12 +6,24 @@ import { createBrowserClient } from "@/lib/supabase/client";
 import { calculateSkills, getMasteryLevel } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, RefreshCw, Calendar, MessageSquare, AlertCircle, TrendingUp, Loader2, Download } from "lucide-react";
+import { ArrowLeft, RefreshCw, Calendar, MessageSquare, AlertCircle, TrendingUp, Loader2, Download, Heart, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import { GitHubIcon } from "@/components/icons/github";
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 
-type Post = { id: string; repo_name: string; tone: string; content: string; created_at: string };
+type CommunityPost = {
+  id: string;
+  title: string | null;
+  content: string;
+  tone: string;
+  category: string;
+  tags: string[];
+  repo_name: string | null;
+  likes_count: number;
+  comments_count: number;
+  created_at: string;
+};
+type GeneratedPost = { id: string; repo_name: string; tone: string; content: string; created_at: string };
 type Skill = { name: string; count: number; first_year?: number };
 type GithubRepo = { language: string | null; pushed_at: string; name: string };
 type YearSkills = { year: number; skills: { name: string; count: number }[] };
@@ -20,7 +32,10 @@ export default function PerfilPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [skills, setSkills] = useState<Skill[]>([]);
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>([]);
+  const [generatedPosts, setGeneratedPosts] = useState<GeneratedPost[]>([]);
+  const [showGenerated, setShowGenerated] = useState(false);
+  const [generatedLoading, setGeneratedLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [skillsSource, setSkillsSource] = useState<"db" | "github" | "empty">("empty");
   const [activeTab, setActiveTab] = useState<"tree" | "evolution">("tree");
@@ -41,9 +56,9 @@ export default function PerfilPage() {
       setProviderToken(session.provider_token ?? null);
       const jwt = session.access_token;
 
-      // Fetch posts and DB profile in parallel
-      const [postsRes, profileRes] = await Promise.all([
-        fetch("/api/posts", { headers: { Authorization: `Bearer ${jwt}` } }),
+      // Fetch community posts and DB profile in parallel
+      const [communityRes, profileRes] = await Promise.all([
+        fetch("/api/community/mine", { headers: { Authorization: `Bearer ${jwt}` } }),
         supabase
           .from("profiles")
           .select("skills")
@@ -51,7 +66,7 @@ export default function PerfilPage() {
           .single(),
       ]);
 
-      if (postsRes.ok) setPosts(await postsRes.json());
+      if (communityRes.ok) setCommunityPosts(await communityRes.json());
 
       const dbSkills: Skill[] = profileRes.data?.skills ?? [];
 
@@ -161,7 +176,7 @@ export default function PerfilPage() {
               )}
               <div className="flex items-center gap-1">
                 <MessageSquare className="h-4 w-4" />
-                {posts.length} posts gerados
+                {communityPosts.length} posts na comunidade
               </div>
             </div>
             {username && (
@@ -319,38 +334,113 @@ export default function PerfilPage() {
           )}
         </section>
 
-        {/* Post History */}
+        {/* Community Post History */}
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold tracking-tight">Histórico de Posts</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold tracking-tight">Histórico de Posts</h2>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/comunidade/novo">Novo post</Link>
+            </Button>
+          </div>
           <div className="space-y-4">
-            {posts.map((post) => (
-              <div key={post.id} className="rounded-lg border bg-card p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={post.tone === "business" ? "default" : "secondary"}>
-                      {post.tone === "business" ? "Negócio" : "Técnico"}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground font-medium">
-                      {post.repo_name}
-                    </span>
+            {communityPosts.map((post) => (
+              <Link key={post.id} href={`/comunidade/${post.id}`} className="block rounded-lg border bg-card p-5 space-y-3 hover:border-foreground/30 transition-colors">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1 min-w-0">
+                    {post.title && <p className="font-medium text-sm truncate">{post.title}</p>}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant={post.category === "showcase" ? "default" : "secondary"} className="text-[10px]">
+                        {post.category === "showcase" ? "Showcase" : "Discussão"}
+                      </Badge>
+                      <Badge variant="outline" className="text-[10px]">
+                        {post.tone === "business" ? "Negócio" : post.tone === "technical" ? "Técnico" : "Livre"}
+                      </Badge>
+                      {post.tags.slice(0, 3).map((tag) => (
+                        <span key={tag} className="text-[10px] text-muted-foreground">#{tag}</span>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Calendar className="h-3 w-3" />
-                    {new Date(post.created_at).toLocaleDateString("pt-BR")}
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
+                    <span className="flex items-center gap-1"><Heart className="h-3 w-3" />{post.likes_count}</span>
+                    <span className="flex items-center gap-1"><MessageSquare className="h-3 w-3" />{post.comments_count}</span>
                   </div>
                 </div>
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">{post.content}</p>
-              </div>
+                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{post.content}</p>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Calendar className="h-3 w-3" />
+                  {new Date(post.created_at).toLocaleDateString("pt-BR")}
+                </div>
+              </Link>
             ))}
-            {posts.length === 0 && (
+            {communityPosts.length === 0 && (
               <div className="text-center py-10 border rounded-lg border-dashed">
-                <p className="text-sm text-muted-foreground">Você ainda não gerou nenhum post.</p>
+                <p className="text-sm text-muted-foreground">Você ainda não publicou nenhum post na comunidade.</p>
                 <Button asChild variant="link" className="mt-2">
-                  <Link href="/repositorios">Começar a gerar</Link>
+                  <Link href="/comunidade/novo">Publicar primeiro post</Link>
                 </Button>
               </div>
             )}
           </div>
+        </section>
+
+        {/* Generated Posts (AI) */}
+        <section className="space-y-4">
+          <button
+            onClick={async () => {
+              if (!showGenerated && generatedPosts.length === 0) {
+                setGeneratedLoading(true);
+                const jwt = (await createBrowserClient().auth.getSession()).data.session?.access_token;
+                if (jwt) {
+                  const res = await fetch("/api/posts", { headers: { Authorization: `Bearer ${jwt}` } });
+                  if (res.ok) setGeneratedPosts(await res.json());
+                }
+                setGeneratedLoading(false);
+              }
+              setShowGenerated((v) => !v);
+            }}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Sparkles className="h-4 w-4" />
+            Posts gerados por IA
+            {showGenerated ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          </button>
+
+          {showGenerated && (
+            <div className="space-y-4">
+              {generatedLoading && (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              )}
+              {!generatedLoading && generatedPosts.map((post) => (
+                <div key={post.id} className="rounded-lg border bg-card p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge variant={post.tone === "business" ? "default" : "secondary"}>
+                        {post.tone === "business" ? "Negócio" : "Técnico"}
+                      </Badge>
+                      {post.repo_name && (
+                        <span className="text-xs text-muted-foreground font-medium">{post.repo_name}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      {new Date(post.created_at).toLocaleDateString("pt-BR")}
+                    </div>
+                  </div>
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap line-clamp-4">{post.content}</p>
+                </div>
+              ))}
+              {!generatedLoading && generatedPosts.length === 0 && (
+                <div className="text-center py-8 border rounded-lg border-dashed">
+                  <p className="text-sm text-muted-foreground">Nenhum post gerado ainda.</p>
+                  <Button asChild variant="link" className="mt-2">
+                    <Link href="/repositorios">Gerar post com IA</Link>
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
         </section>
       </main>
     </div>
