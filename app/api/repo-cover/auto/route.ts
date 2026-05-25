@@ -18,21 +18,16 @@ async function detectFrontendUrl(
   if (githubToken) ghHeaders.Authorization = `token ${githubToken}`;
 
   const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers: ghHeaders });
-  if (repoRes.ok) {
-    const repoData = await repoRes.json();
+  const repoData = repoRes.ok ? await repoRes.json() : null;
 
-    // 1. Explicit homepage (Vercel/Netlify/etc.)
-    if (repoData.homepage?.startsWith("http")) {
-      return { url: repoData.homepage, hasFrontend: true };
-    }
-
-    // 2. GitHub Pages enabled
-    if (repoData.has_pages) {
-      return { url: `https://${owner}.github.io/${repo}/`, hasFrontend: true };
-    }
+  // 1. Explicit homepage set by the owner (Vercel/Netlify/custom domain)
+  if (repoData?.homepage?.startsWith("http")) {
+    return { url: repoData.homepage, hasFrontend: true };
   }
 
-  // 3. List root and common frontend dirs, find any .html file
+  // 2. Scan root and common frontend dirs for any actual .html file.
+  //    has_pages alone is NOT sufficient — GitHub Pages can serve a rendered README
+  //    with no real HTML in the repo. We require a real .html file.
   const dirsToScan = ["", "public", "dist", "docs", "src"];
   for (const dir of dirsToScan) {
     const contentsUrl = `https://api.github.com/repos/${owner}/${repo}/contents${dir ? `/${dir}` : ""}`;
@@ -45,8 +40,11 @@ async function detectFrontendUrl(
         e.type === "file" && e.name.toLowerCase().endsWith(".html")
     );
     if (htmlFile) {
-      // Found an HTML page — prefer GitHub Pages URL, fall back to raw render URL
-      const pagesUrl = `https://${owner}.github.io/${repo}/${dir ? dir + "/" : ""}${htmlFile.name}`;
+      // Prefer GitHub Pages URL when available, otherwise point directly to the file
+      const filePath = `${dir ? dir + "/" : ""}${htmlFile.name}`;
+      const pagesUrl = repoData?.has_pages
+        ? `https://${owner}.github.io/${repo}/${filePath}`
+        : `https://raw.githubusercontent.com/${owner}/${repo}/HEAD/${filePath}`;
       return { url: pagesUrl, hasFrontend: true };
     }
   }
