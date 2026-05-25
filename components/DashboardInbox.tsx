@@ -104,10 +104,10 @@ export function DashboardInbox({ jwt }: { jwt: string }) {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b" style={{ backgroundColor: "#fde047" }}>
+            <div className="flex items-center justify-between px-5 py-4 border-b bg-muted/30">
               <div className="flex items-center gap-2">
-                <Mail className="h-5 w-5 text-black" />
-                <h2 className="font-semibold text-sm text-black">Mensagens recebidas — v2</h2>
+                <Mail className="h-5 w-5 text-muted-foreground" />
+                <h2 className="font-semibold text-sm">Mensagens recebidas</h2>
                 {unreadCount > 0 && (
                   <span className="text-xs bg-red-500 text-white px-1.5 py-0.5 rounded-full font-medium">
                     {unreadCount} nova{unreadCount > 1 ? "s" : ""}
