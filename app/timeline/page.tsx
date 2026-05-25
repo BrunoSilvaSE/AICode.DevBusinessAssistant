@@ -107,8 +107,8 @@ export default function TimelinePage() {
         title: form.title,
         institution: form.institution || null,
         description: form.description || null,
-        start_date: form.start_date,
-        end_date: form.current ? null : form.end_date || null,
+        start_date: form.start_date ? `${form.start_date}-01` : form.start_date,
+        end_date: form.current ? null : form.end_date ? `${form.end_date}-01` : null,
         current: form.current,
         repo_url: selectedRepo?.html_url ?? null,
         repo_name: selectedRepo?.name ?? null,
@@ -203,8 +203,8 @@ export default function TimelinePage() {
                 <label className="text-xs font-medium">Início *</label>
                 <input
                   type="month"
-                  value={form.start_date ? form.start_date.slice(0, 7) : ""}
-                  onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value ? `${e.target.value}-01` : "" }))}
+                  value={form.start_date}
+                  onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))}
                   className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                 />
               </div>
@@ -213,8 +213,8 @@ export default function TimelinePage() {
                 <label className="text-xs font-medium">Fim</label>
                 <input
                   type="month"
-                  value={form.end_date ? form.end_date.slice(0, 7) : ""}
-                  onChange={(e) => setForm((f) => ({ ...f, end_date: e.target.value ? `${e.target.value}-01` : "" }))}
+                  value={form.end_date}
+                  onChange={(e) => setForm((f) => ({ ...f, end_date: e.target.value }))}
                   disabled={form.current}
                   className="w-full rounded-md border bg-background px-3 py-2 text-sm disabled:opacity-40"
                 />
