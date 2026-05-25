@@ -158,7 +158,7 @@ export async function POST(req: Request) {
     .getPublicUrl(path);
 
   return Response.json({
-    url: publicUrl,
+    url: `${publicUrl}?t=${Date.now()}`,
     source: targetUrl,
     hasFrontend,
   });

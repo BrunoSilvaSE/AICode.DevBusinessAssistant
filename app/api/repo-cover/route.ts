@@ -52,5 +52,5 @@ export async function POST(req: Request) {
     .from("repo-covers")
     .getPublicUrl(path);
 
-  return Response.json({ url: publicUrl });
+  return Response.json({ url: `${publicUrl}?t=${Date.now()}` });
 }
