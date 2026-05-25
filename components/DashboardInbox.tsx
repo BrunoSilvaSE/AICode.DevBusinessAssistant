@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Inbox, Mail, MailOpen, Trash2, X, ArrowLeft, AtSign } from "lucide-react";
 
 type Message = {
@@ -28,6 +29,9 @@ export function DashboardInbox({ jwt }: { jwt: string }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [selected, setSelected] = useState<Message | null>(null);
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   const fetchMessages = useCallback(async () => {
     const res = await fetch("/api/messages", {
@@ -91,10 +95,10 @@ export function DashboardInbox({ jwt }: { jwt: string }) {
         )}
       </button>
 
-      {/* Overlay */}
-      {open && (
+      {/* Overlay (portal-mounted to escape header's backdrop-filter containing block) */}
+      {open && mounted && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
           style={{ backgroundColor: "rgba(0,0,0,0.08)", backdropFilter: "blur(3px)" }}
           onClick={() => { setOpen(false); setSelected(null); }}
         >
@@ -223,7 +227,8 @@ export function DashboardInbox({ jwt }: { jwt: string }) {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
