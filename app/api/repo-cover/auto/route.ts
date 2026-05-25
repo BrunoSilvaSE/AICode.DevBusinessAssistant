@@ -32,15 +32,22 @@ async function detectFrontendUrl(
     }
   }
 
-  // 3. Look for index.html in common frontend paths
-  const paths = ["index.html", "public/index.html", "dist/index.html", "docs/index.html", "src/index.html"];
-  for (const path of paths) {
-    const res = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
-      { headers: ghHeaders }
+  // 3. List root and common frontend dirs, find any .html file
+  const dirsToScan = ["", "public", "dist", "docs", "src"];
+  for (const dir of dirsToScan) {
+    const contentsUrl = `https://api.github.com/repos/${owner}/${repo}/contents${dir ? `/${dir}` : ""}`;
+    const res = await fetch(contentsUrl, { headers: ghHeaders });
+    if (!res.ok) continue;
+    const entries = await res.json();
+    if (!Array.isArray(entries)) continue;
+    const htmlFile = entries.find(
+      (e: { type: string; name: string }) =>
+        e.type === "file" && e.name.toLowerCase().endsWith(".html")
     );
-    if (res.ok) {
-      return { url: `https://${owner}.github.io/${repo}/`, hasFrontend: true };
+    if (htmlFile) {
+      // Found an HTML page — prefer GitHub Pages URL, fall back to raw render URL
+      const pagesUrl = `https://${owner}.github.io/${repo}/${dir ? dir + "/" : ""}${htmlFile.name}`;
+      return { url: pagesUrl, hasFrontend: true };
     }
   }
 
