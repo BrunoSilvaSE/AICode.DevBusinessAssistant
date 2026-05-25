@@ -214,7 +214,6 @@ export default function TimelinePage() {
                   onChange={(v) => setForm((f) => ({ ...f, end_date: v }))}
                   disabled={form.current}
                 />
-              </div>
                 <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
                   <input
                     type="checkbox"
@@ -352,7 +351,7 @@ function MonthYearPicker({
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear - 1979 }, (_, i) => currentYear - i);
 
-  const [month, year] = value ? value.split("-") : ["", ""];
+  const [year, month] = value ? value.split("-") : ["", ""];
 
   function handleChange(newMonth: string, newYear: string) {
     if (newMonth && newYear) onChange(`${newYear}-${newMonth}`);
