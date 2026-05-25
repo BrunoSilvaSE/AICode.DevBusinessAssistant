@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Bell, Mail, MailOpen, Trash2, X, ArrowLeft, User, AtSign } from "lucide-react";
+import { Inbox, Mail, MailOpen, Trash2, X, ArrowLeft, AtSign } from "lucide-react";
 
 type Message = {
   id: string;
@@ -63,7 +63,12 @@ export function DashboardInbox({ jwt }: { jwt: string }) {
     if (selected?.id === id) setSelected(null);
   }
 
-  async function handleOpen() {
+  async function handleToggle() {
+    if (open) {
+      setOpen(false);
+      setSelected(null);
+      return;
+    }
     setOpen(true);
     setLoading(true);
     await fetchMessages();
@@ -72,13 +77,13 @@ export function DashboardInbox({ jwt }: { jwt: string }) {
 
   return (
     <>
-      {/* Bell button */}
+      {/* Inbox button */}
       <button
-        onClick={handleOpen}
+        onClick={handleToggle}
         className="relative p-2 rounded-lg hover:bg-accent/50 transition-colors text-muted-foreground hover:text-foreground"
         aria-label="Abrir caixa de mensagens"
       >
-        <Bell className="h-5 w-5" />
+        <Inbox className="h-5 w-5" />
         {unreadCount > 0 && (
           <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
             {unreadCount > 9 ? "9+" : unreadCount}
@@ -88,8 +93,15 @@ export function DashboardInbox({ jwt }: { jwt: string }) {
 
       {/* Overlay */}
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="w-full max-w-3xl bg-background border rounded-2xl shadow-2xl overflow-hidden flex flex-col" style={{ height: "min(80vh, 600px)" }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onClick={() => { setOpen(false); setSelected(null); }}
+        >
+          <div
+            className="w-full max-w-3xl bg-background border rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+            style={{ height: "min(80vh, 600px)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b bg-muted/30">
               <div className="flex items-center gap-2">

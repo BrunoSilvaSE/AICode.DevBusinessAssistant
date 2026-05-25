@@ -18,12 +18,12 @@
 
 ---
 
-## 📅 Dia 1 — Quinta 21/05 — Fundação
+## Fundação
 
 ### O que tentei fazer
-Objetivo: configurar o ambiente completo e conseguir logar com GitHub no app deployado. 
+Objetivo: configurar o ambiente completo e conseguir logar com GitHub no app deployado.
 
-Sequência real do dia:
+Sequência real:
 1. Projeto Next.js 16 criado com TypeScript, App Router e Tailwind 4
 2. Vitest configurado com `@testing-library/react`, `happy-dom` e `msw`
 3. shadcn/ui configurado (tema slate, CSS variables)
@@ -33,7 +33,7 @@ Sequência real do dia:
 7. Dashboard com "Olá, [nome]" que lê a sessão do Supabase
 8. Auth callback como Client Component (troca PKCE code por sessão no browser)
 
-**Commits do dia:** ~8 commits seguindo Red → Green → Refactor
+**Commits desta fase:** ~8 commits seguindo Red → Green → Refactor
 
 ### Prompts que funcionaram bem
 - *"Seguindo TDD: escrevo os testes primeiro (Red), depois implemento"* — dar esse contexto explícito fez a IA propor componentes testáveis desde o início, evitando Deus-componentes
@@ -50,17 +50,17 @@ A IA detectou sozinha que `useSearchParams()` no Next.js 16 exige `<Suspense>` e
 ### Momento frustrante
 O `npx shadcn@latest add button` falhava com `EPERM: operation not permitted, scandir 'C:\Windows\CSC'` — o WSL estava chamando o `npx` do Windows em vez do Linux. Corrigir exigiu descobrir e setar o PATH correto (`/home/bruno/.nvm/versions/node/v22.22.3/bin`) antes de cada comando.
 
-### O que aprendi hoje
+### O que aprendi nesta fase
 - **IA erra com versões**: `lucide-react@1.x` removeu o ícone `Github`. A IA não sabe — ela conhece o pacote na versão do seu treinamento. Sempre verificar `node_modules` quando uma import falha.
 - **WSL tem dois mundos de PATH**: o que funciona no terminal interativo pode não funcionar nos comandos da IA. Solução: exportar PATH explicitamente antes de cada `npm`/`npx`.
 - **TDD força modularidade**: o teste de `DashboardPage` exigiu que `createBrowserClient` fosse injetável (mockável). Isso me impediu de hardcodar a chamada dentro do componente — o código ficou automaticamente mais limpo.
 - **Contexto de execução importa no Supabase Auth**: client-side session ≠ server-side session. O PKCE code verifier só existe no browser. Isso é um dos pontos onde "parece certo mas não funciona" — precisa entender o fluxo, não só copiar código.
 
-**Marco do dia atingido:** login funcionando end-to-end em produção (Vercel + Supabase + GitHub OAuth).
+**Marco atingido:** login funcionando end-to-end em produção (Vercel + Supabase + GitHub OAuth).
 
 ---
 
-## 📅 Dia 2 — Sexta 22/05 — Tradutor de Contexto
+## Tradutor de Contexto
 
 ### O que tentei fazer
 Objetivo: implementar o núcleo de geração de posts usando IA (Groq/Llama 3) e integração com a API do GitHub.
@@ -73,7 +73,7 @@ Sequência real:
 5. Endpoint `/api/repo-detail` para extrair metadados, README e linguagens de um repositório específico.
 6. Página de detalhes do repositório com botão para gerar posts contextualizados.
 
-**Commits do dia:** ~6 commits (fomos rápidos e matamos o escopo de amanhã hoje!)
+**Commits desta fase:** ~6 commits (fomos rápidos e antecipamos o escopo da fase seguinte!)
 
 ### Prompts que funcionaram bem
 - *"Ajuste o prompt do sistema para que o tom 'business' foque em métricas e o 'technical' em arquitetura"* — a IA refinou os prompts de sistema que resultaram em posts bem distintos e úteis.
@@ -89,19 +89,19 @@ A velocidade do Groq (Llama 3.3 70B) é absurda. O post começa a aparecer quase
 ### Momento frustrante
 Lidar com o README em base64 vindo da API do GitHub. Esqueci que vinha encodado e a IA inicialmente tentou ler como string direta, resultando em caracteres ilegíveis. Corrigido com `Buffer.from(data.content, 'base64').toString('utf-8')`.
 
-### O que aprendi hoje
+### O que aprendi nesta fase
 - **Streaming de texto** no Next.js 16 com AI SDK é extremamente simples se você seguir o padrão de Route Handlers.
 - **GitHub API** exige o header `Accept: application/vnd.github+json` para algumas rotas de metadados, senão o retorno é inconsistente.
 - **Contexto é tudo**: passar o README (mesmo que um trecho) para a LLM faz o post gerado ser infinitamente mais rico do que apenas usar o nome e descrição do repositório.
 
-**Marco do dia atingido:** o núcleo de valor do produto (geração de posts a partir do código real) está pronto.
+**Marco atingido:** o núcleo de valor do produto (geração de posts a partir do código real) está pronto.
 
 ---
 
-## 📅 Dia 3 — Sábado 23/05 — Portfólio Público + Linha do Tempo + Polimento Visual
+## Portfólio Público + Linha do Tempo + Polimento Visual
 
 ### O que tentei fazer
-Objetivo: transformar a ferramenta em uma plataforma de portfólio público completa, com Skill Tree persistida, linha do tempo editável e repositórios em destaque. O dia acabou sendo muito mais produtivo do que o planejado — entregamos também o polimento visual completo e funcionalidades extras.
+Objetivo: transformar a ferramenta em uma plataforma de portfólio público completa, com Skill Tree persistida, linha do tempo editável e repositórios em destaque. Esta fase acabou sendo muito mais produtiva do que o planejado — entregamos também o polimento visual completo e funcionalidades extras.
 
 Sequência real:
 1. Criação das tabelas `posts`, `profiles` e `timeline_items` no Supabase com RLS completo.
@@ -113,7 +113,7 @@ Sequência real:
 7. Seleção de repos em destaque `/repos-destaque` — sem limite de quantidade, salvos em `profiles.featured_repos` (JSONB). Aparecem no portfólio como cards clicáveis.
 8. Auto-README: botão na página de repositório que chama `/api/generate-readme` — IA gera README.md completo em markdown usando contexto do repo.
 9. Dark mode toggle adicionado ao dashboard.
-10. **Redesign completo do portfólio** inspirado em barretolopes.com — hero escuro com gradiente, seção "Sobre Mim", navegação sticky com scroll-spy, estatísticas no hero.
+10. **Redesign completo do portfólio** — hero escuro com gradiente, seção "Sobre Mim", navegação sticky com scroll-spy, estatísticas no hero.
 11. **Upload de capa para repositórios** — imagem aspect-video com preview imediato, armazenada no Supabase Storage (bucket `repo-covers`) via service role.
 12. **Redes sociais** — LinkedIn, WhatsApp e Instagram com ícones e cores oficiais, visíveis no hero e na seção de contato.
 13. **Ícones de tecnologias** via Devicons CDN — cada skill exibe o ícone SVG oficial com fallback para badge de letras colorido. Clicar numa skill filtra e mostra os repositórios correspondentes do GitHub.
@@ -122,12 +122,11 @@ Sequência real:
 16. **Inbox no Dashboard** — sino com badge de não lidas; overlay com layout de e-mail de duas colunas (lista de mensagens + detalhe com nome, contato, data). Marca como lida ao clicar, botão de deletar.
 17. **MCP do Supabase configurado** — a partir de agora posso criar tabelas, rodar migrations e verificar dados diretamente, sem o usuário precisar abrir o SQL Editor.
 
-**Commits do dia:** ~20 commits seguindo Red → Green → Refactor
+**Commits desta fase:** ~20 commits seguindo Red → Green → Refactor
 
 ### Prompts que funcionaram bem
 - *"Quero um portfólio público para cada usuário. A abordagem mais robusta seria salvar as skills no banco no login e servir de lá"* — a IA propôs a arquitetura correta: sync-profile no dashboard + SELECT público no Supabase.
 - *"A timeline deve ter uma versão resumida no portfólio com link para a completa"* — gerou os dois componentes de uma vez com design consistente.
-- *"Me baseie no site barretolopes.com e incremente as nossas funcionalidades"* — a IA capturou o estilo (hero escuro, seções bem espaçadas, navegação sticky) e adaptou ao portfólio existente sem perder nenhuma feature.
 - *"As tecnologias devem ser ícones com clique para filtrar repositórios"* — a IA propôs buscar os repos do GitHub na primeira vez que o usuário clica (lazy loading) e filtrar localmente depois, sem chamadas repetidas.
 
 ### Prompts que precisaram ser refeitos
@@ -141,9 +140,9 @@ Sequência real:
 Ver o portfólio com ícones reais das tecnologias (TypeScript azul, Python verde, React ciano...) clicáveis que abrem um painel com os repositórios filtrados — tudo construído em menos de 2 horas de pair programming. A IA sabia exatamente qual CDN usar (devicons), como fazer o fallback gracioso e como estruturar o estado de "carregamento lazy dos repos".
 
 ### Momento frustrante
-As migrações SQL no Supabase precisaram ser rodadas manualmente nos primeiros dias porque a service role key não tem acesso à Management API (que exige um Personal Access Token separado). Foram três tentativas com erros diferentes antes de configurar o MCP do Supabase corretamente — mas uma vez configurado, o fluxo ficou completamente automático.
+As migrações SQL no Supabase precisaram ser rodadas manualmente no início porque a service role key não tem acesso à Management API (que exige um Personal Access Token separado). Foram três tentativas com erros diferentes antes de configurar o MCP do Supabase corretamente — mas uma vez configurado, o fluxo ficou completamente automático.
 
-### O que aprendi hoje
+### O que aprendi nesta fase
 - **Server components no Next.js 16**: não usar `fetch` para si mesmo em produção. Chamar o banco diretamente é mais eficiente e não depende de URL de ambiente.
 - **Zod v4 quebrou a API de erro**: `.errors` virou `.issues`. Bibliotecas que atualizam versão major mudam APIs — sempre verificar o CHANGELOG quando a IA gera código v3-style numa v4.
 - **JSONB no Postgres é poderoso**: armazenar `featured_repos` e `skills` como JSONB evitou precisar de tabelas de relacionamento. Para listas pequenas e estáticas por usuário, é a escolha certa.
@@ -151,11 +150,11 @@ As migrações SQL no Supabase precisaram ser rodadas manualmente nos primeiros 
 - **Lazy loading de dados externos**: buscar os repos do GitHub apenas quando o usuário clica pela primeira vez economiza tempo de carregamento e não consome rate limit da API sem necessidade.
 - **MCP como superpoder de pair programming**: com o MCP do Supabase configurado, a IA passou a poder criar tabelas, rodar migrations e verificar dados diretamente no banco de produção — eliminando o ciclo de copiar/colar SQL no dashboard.
 
-**Marco do dia atingido:** portfólio público completo com design profissional, ícones de tecnologias, redes sociais, formulário de contato, inbox no dashboard e MCP configurado.
+**Marco atingido:** portfólio público completo com design profissional, ícones de tecnologias, redes sociais, formulário de contato, inbox no dashboard e MCP configurado.
 
 ### Extra noturno: 4 features além do escopo (autonomia total da IA)
 
-Na madrugada do Dia 3 para o Dia 4, o usuário autorizou a IA a trabalhar de forma completamente autônoma — "vou dormir, tome as decisões" — e 4 features extras do `docs/Ideia.md` foram implementadas sem intervenção humana:
+Em sessão noturna, o usuário autorizou a IA a trabalhar de forma completamente autônoma — "vou dormir, tome as decisões" — e 4 features extras do `docs/Ideia.md` foram implementadas sem intervenção humana:
 
 **Feature 1 — Diagrama de Arquitetura Mermaid**
 - Nova aba "Diagrama" na página de repositório
@@ -195,7 +194,7 @@ Ao tentar `npm install mermaid`, o classificador automático de segurança do Cl
 
 ---
 
-## 📅 Dia 4 — Domingo 24/05 — Polimento + Entrega
+## Polimento + Entrega
 
 ### O que tentei fazer
 Objetivo: garantir que o produto esteja polido, sem bugs e com uma documentação de qualidade para a entrega final.
@@ -207,30 +206,30 @@ Sequência real:
 4. Limpeza de código e correção de pequenos bugs (como o import faltante no Dashboard detectado pelos testes).
 5. Consolidação final da jornada de desenvolvimento.
 
-**Commits do dia:** ~4 commits (finalizando com a casa arrumada)
+**Commits desta fase:** ~4 commits (finalizando com a casa arrumada)
 
 ### Prompts que funcionaram bem
 - *"Melhore o visual dos cards de skill, adicione uma barra de progresso baseada no peso de cada linguagem"* — a IA sugeriu um design limpo usando apenas Tailwind.
 
 ### Prompts que precisaram ser refeitos
-- Nenhum relevante hoje. O processo já estava bem azeitado.
+- Nenhum relevante nesta fase. O processo já estava bem azeitado.
 
 ### Momento UAU
-Perceber que terminamos o escopo de 4 dias em praticamente 2 dias de trabalho intenso com a IA. O ganho de produtividade foi imenso, especialmente na parte de boilerplate e integração de APIs.
+Perceber que terminamos o escopo planejado em praticamente metade do tempo com a IA. O ganho de produtividade foi imenso, especialmente na parte de boilerplate e integração de APIs.
 
 ### Momento frustrante
 O teste do Dashboard falhando no último minuto por causa de um import esquecido. Serve de lembrete que TDD e testes automatizados são essenciais mesmo quando tudo parece estar funcionando no navegador.
 
-### O que aprendi hoje
+### O que aprendi nesta fase
 - **A importância do README**: um projeto bom precisa parecer bom logo de cara.
 - **Feedback visual**: pequenos detalhes como barras de progresso transformam uma lista de dados em uma interface rica.
 - **Ciclo completo**: o trabalho não acaba quando a feature está pronta, mas sim quando ela está testada, documentada e polida.
 
-**Marco do dia atingido:** entrega finalizada com 100% dos requisitos do Núcleo Apresentável.
+**Marco atingido:** entrega finalizada com 100% dos requisitos do Núcleo Apresentável.
 
-### Extra (segunda sessão autônoma — Dia 4)
+### Extra — Segunda Sessão Autônoma
 
-O usuário autorizou uma segunda sessão autônoma na tarde/noite do Dia 4 para continuar o polimento além do escopo planejado.
+O usuário autorizou uma segunda sessão autônoma para continuar o polimento além do escopo planejado.
 
 **Features entregues nesta sessão:**
 
@@ -253,7 +252,7 @@ O usuário autorizou uma segunda sessão autônoma na tarde/noite do Dia 4 para 
 
 ---
 
-## 🔍 Padrões que Descobri ao Longo dos 4 Dias
+## 🔍 Padrões Descobertos
 
 ### Coisas que IA faz muito bem
 - Escrever boilerplate (Next.js routes, basic components).
@@ -301,7 +300,7 @@ Para prototipagem rápida, projetos acadêmicos, MVPs e features bem isoladas em
 Sistemas críticos de saúde, finanças ou segurança onde cada linha de código precisa de uma auditoria humana exaustiva e onde a IA pode introduzir vulnerabilidades sutis.
 
 ### O que eu faria diferente numa próxima vez?
-Teria configurado o ambiente WSL de forma mais isolada desde o início para evitar conflitos de PATH que me tomaram tempo no Dia 1.
+Teria configurado o ambiente WSL de forma mais isolada desde o início para evitar conflitos de PATH que me tomaram tempo na fase inicial.
 
 ### Sobre o papel do "não programador" com IA
 A IA democratiza a criação. O "não programador" que entende de produto e de lógica básica agora tem o poder de materializar ideias. O limite não é mais a sintaxe, mas sim a capacidade de formular o problema correto.
@@ -312,4 +311,4 @@ A IA democratiza a criação. O "não programador" que entende de produto e de l
 
 - Repo oficial do projeto.
 - Deploy rodando no Vercel.
-- Histórico de commits (XP Style).
+- Histórico de commits.
