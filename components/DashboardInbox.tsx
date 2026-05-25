@@ -99,7 +99,7 @@ export function DashboardInbox({ jwt }: { jwt: string }) {
       {open && mounted && createPortal(
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-          style={{ backgroundColor: "rgba(0,0,0,0.08)", backdropFilter: "blur(3px)" }}
+          style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
           onClick={() => { setOpen(false); setSelected(null); }}
         >
           <div
